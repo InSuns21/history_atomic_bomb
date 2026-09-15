@@ -28,7 +28,7 @@ jobs:
           python-version: '3.12'
 
       - name: Validate achievements and build site
-        run: python scripts/build_site.py --check --strict-length --strict-tags
+        run: python scripts/build_site_v2.py --check --strict-length --strict-tags
 
       - name: Configure GitHub Pages
         if: github.event_name != 'pull_request'
