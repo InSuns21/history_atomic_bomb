@@ -1,4 +1,20 @@
 from pathlib import Path
+import re
+
+# Add a small cross-cutting tag for surrender/end-of-war events that would otherwise become tagless
+# after removing the old Hiroshima/Nagasaki section tag.
+ap=Path('ACHIEVEMENTS.md')
+a=ap.read_text(encoding='utf-8')
+for title in ['あらかじめ裏切られた条約','100万の兵を救った……？','みなさん、これが最後です']:
+    pat=rf'(^\|[^\n]*\*\*{re.escape(title)}\*\*\s*\|)([^|]*)(\|)'
+    m=re.search(pat,a,re.M)
+    if not m:
+        raise SystemExit(f'missing achievement for end-of-war tag: {title}')
+    tags=[t.strip() for t in m.group(2).split(',') if t.strip()]
+    if '終戦' not in tags:
+        tags.append('終戦')
+    a=a[:m.start(2)]+' '+', '.join(tags)+' '+a[m.end(2):]
+ap.write_text(a,encoding='utf-8')
 
 p=Path('scripts/build_site.py')
 s=p.read_text(encoding='utf-8')
@@ -15,8 +31,6 @@ for old,new in repls.items():
         raise SystemExit(f'missing build-site patch target: {old}')
     s=s.replace(old,new)
 
-anchor='''KEYWORD_TAGS = [\n'''
-# Add forbidden legacy tags after the keyword table, immediately before the dataclass.
 needle='''\n\n@dataclass\nclass Achievement:'''
 insert='''\n\nFORBIDDEN_TAGS = {"広島・長崎", "原潜・SLBM", "原発事故"}\n\n@dataclass\nclass Achievement:'''
 if 'FORBIDDEN_TAGS =' not in s:
@@ -30,4 +44,4 @@ if old not in s:
     raise SystemExit('missing validation insertion target')
 s=s.replace(old,new,1)
 p.write_text(s,encoding='utf-8')
-print('patched tag fallback and validation rules')
+print('patched end-of-war tags plus tag fallback and validation rules')
