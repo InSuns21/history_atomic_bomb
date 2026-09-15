@@ -1,0 +1,45 @@
+name: Remove redundant title disclaimers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/remove-title-disclaimers.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove redundant title disclaimers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          needles = (
+              'タイトルはゲーム用表現で、仁科本人の発言ではない。',
+              'タイトルは当事者の逐語発言ではない。',
+          )
+          changed = []
+          for path in Path('achievements').glob('*.md'):
+              text = path.read_text(encoding='utf-8')
+              new = text
+              for needle in needles:
+                  new = new.replace(needle, '')
+              if new != text:
+                  path.write_text(new, encoding='utf-8')
+                  changed.append(str(path))
+          if not changed:
+              raise SystemExit('No matching disclaimer text found')
+          print('\n'.join(changed))
+          PY
+      - name: Commit cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add achievements/*.md
+          git commit -m 'Remove redundant title disclaimers'
+          git push
