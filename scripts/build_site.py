@@ -12,8 +12,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "ACHIEVEMENTS.md"
 OUT_DIR = ROOT / "_site"
-MIN_BODY_CHARS = 180
-PREFERRED_BODY_CHARS = 200
+MIN_BODY_CHARS = 120
+PREFERRED_BODY_CHARS = 160
+
+# These phrases are editorial guidance accidentally copied into many achievement bodies in an
+# earlier migration. They are useful at chapter level, but per-card repetition is padding.
+BANNED_BOILERPLATE = [
+    "年表の一行として覚えるだけでなく",
+    "結果を知る現在から当時を単純化せず",
+    "この実績名はゲーム用の表現であり",
+    "出来事そのものと、後世に与えられた象徴的な意味は別である",
+    "技術上の成功、政治上の判断、倫理上の評価は同じ尺度では測れない",
+    "被爆史を大きな死者数だけで語ると",
+    "大量の破壊能力を維持することが『使わないための条件』とされた点に",
+    "核抑止が機能したという評価と、誤警報・事故・誤算で破局し得たという評価は両立する",
+    "年表の一行として",
+]
 
 SECTION_TAGS = {
     "0": ["科学史"],
@@ -239,6 +253,10 @@ def validate(items: list[Achievement], strict_length: bool, strict_tags: bool) -
                 errors.append(f"duplicate achievement body: '{a.title}' and '{b.title}'")
             else:
                 by_exact_body[body_sig] = a
+        for phrase in BANNED_BOILERPLATE:
+            if phrase in a.body:
+                errors.append(f"boilerplate padding in body: '{a.title}' line {a.source_line}: {phrase}")
+
         if not a.tags:
             errors.append(f"missing tags: '{a.title}' line {a.source_line}")
         elif strict_tags and not a.tags_explicit:
@@ -248,6 +266,17 @@ def validate(items: list[Achievement], strict_length: bool, strict_tags: bool) -
             (errors if strict_length else warnings).append(msg)
         elif a.body_len < PREFERRED_BODY_CHARS:
             warnings.append(f"body below preferred {PREFERRED_BODY_CHARS} chars ({a.body_len}): '{a.title}' line {a.source_line}")
+    sentence_owners: dict[str, list[Achievement]] = {}
+    for a in items:
+        for sentence in re.split(r"(?<=[。！？])", a.body):
+            sig = re.sub(r"\s+|[。、・,.!?！？「」『』（）()：:]", "", unicodedata.normalize("NFKC", sentence))
+            if len(sig) >= 42:
+                sentence_owners.setdefault(sig, []).append(a)
+    for owners in sentence_owners.values():
+        unique_titles = list(dict.fromkeys(x.title for x in owners))
+        if len(unique_titles) >= 3:
+            errors.append("repeated long sentence across achievements: " + ", ".join(repr(x) for x in unique_titles[:6]))
+
     return errors, warnings
 
 
