@@ -31,10 +31,10 @@ BANNED_BOILERPLATE = [
 
 SECTION_TAGS = {
     "0": ["科学史"],
-    "1": ["広島・長崎"],
-    "2": ["被爆後", "復興"],
+    "1": [],
+    "2": [],
     "3": ["冷戦"],
-    "4": ["原子力", "デュアルユース"],
+    "4": [],
     "5": ["南アジア"],
     "5A": ["北朝鮮"],
     "6": ["核時代"],
@@ -48,7 +48,7 @@ SUBSECTION_TAGS = [
     (r"工学的課題", ["マンハッタン計画", "核燃料"]),
     (r"張本勲", ["広島", "被爆者証言", "記憶継承"]),
     (r"長崎戦後被爆史", ["長崎", "被爆後", "記憶継承"]),
-    (r"V2から宇宙", ["ミサイル", "宇宙開発"]),
+    (r"V2から宇宙", ["ミサイル"]),
     (r"高速増殖炉", ["高速炉", "核燃料サイクル"]),
     (r"次の夢|星と核融合", ["核融合"]),
     (r"錬金術", ["元素変換"]),
@@ -65,14 +65,15 @@ KEYWORD_TAGS = [
     (r"核分裂|中性子|原子核|ウラン|U-235|プルトニウム|Pu-239", "原子核物理"),
     (r"マンハッタン|Manhattan|ロスアラモス|Trinity|Little Boy|Fat Man|爆縮|濃縮|Y-12|K-25|S-50", "マンハッタン計画"),
     (r"ICBM|SLBM|ミサイル|Polaris|Poseidon|Trident|Minuteman|R-7|V2", "ミサイル"),
-    (r"潜水艦|SSBN|Nautilus", "原潜・SLBM"),
+    (r"潜水艦|SSBN|Nautilus", "原潜"),
+    (r"SLBM|Polaris|Poseidon|Trident", "SLBM"),
     (r"相互確証破壊|第二撃|核抑止|抑止", "核抑止"),
     (r"NPT|TPNW|INF|START|SALT|軍縮|廃絶|パグウォッシュ|ABM条約", "軍縮・条約"),
     (r"不拡散|保障措置|核拡散", "核拡散"),
     (r"核融合|熱核|恒星|地上に太陽", "核融合"),
     (r"核実験|Trinity|Castle Bravo|RDS-1|Tsar Bomba|Pokhran|Chagai|Starfish Prime|Rainier", "核実験"),
     (r"原子炉|原発|もんじゅ|常陽|福島|チェルノブイリ|スリーマイル|再処理|MOX|プルサーマル", "原子力"),
-    (r"事故", "原発事故"),
+    (r"スリーマイル|チェルノブイリ|福島第一|ナトリウム.*漏", "原子力事故"),
     (r"インド|パキスタン|Pokhran|Chagai|ガンジー", "南アジア"),
     (r"北朝鮮|米朝|ハノイ|シンガポール", "北朝鮮"),
     (r"ソ連|米ソ|冷戦|キューバ|レイキャビク", "冷戦"),
@@ -81,6 +82,8 @@ KEYWORD_TAGS = [
     (r"要検証|史料上の留保|留保あり|演出名|帰属には.*留保", "要検証"),
 ]
 
+
+FORBIDDEN_TAGS = {"広島・長崎", "原潜・SLBM", "原発事故"}
 
 @dataclass
 class Achievement:
@@ -261,6 +264,11 @@ def validate(items: list[Achievement], strict_length: bool, strict_tags: bool) -
             errors.append(f"missing tags: '{a.title}' line {a.source_line}")
         elif strict_tags and not a.tags_explicit:
             errors.append(f"tags must be explicit in ACHIEVEMENTS.md: '{a.title}' line {a.source_line}")
+        forbidden = sorted(set(a.tags) & FORBIDDEN_TAGS)
+        if forbidden:
+            errors.append(f"forbidden legacy tags in '{a.title}' line {a.source_line}: {', '.join(forbidden)}")
+        if a.future and not {"未来", "未解除"}.issubset(set(a.tags)):
+            errors.append(f"future achievement missing future tags: '{a.title}' line {a.source_line}")
         if a.body_len < MIN_BODY_CHARS:
             msg = f"short body ({a.body_len} chars): '{a.title}' line {a.source_line}"
             (errors if strict_length else warnings).append(msg)
