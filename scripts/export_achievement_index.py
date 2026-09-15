@@ -3,6 +3,7 @@ import re
 
 src = Path('ACHIEVEMENTS.md').read_text(encoding='utf-8').splitlines()
 out = ['date\ttitle\ttags\tbody']
+titles = []
 for line in src:
     if not line.startswith('|'):
         continue
@@ -13,4 +14,6 @@ for line in src:
     title = re.sub(r'^🔒\s*', '', title)
     title = re.sub(r'^\*\*|\*\*$', '', title).strip()
     out.append('\t'.join([date, title, tags, body]))
+    titles.append(f'{len(titles)+1:03d}\t{date}\t{title}')
 Path('tmp_achievement_index.tsv').write_text('\n'.join(out) + '\n', encoding='utf-8')
+Path('tmp_titles.tsv').write_text('\n'.join(titles) + '\n', encoding='utf-8')
