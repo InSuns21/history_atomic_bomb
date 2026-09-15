@@ -64,6 +64,7 @@ CATEGORIES = [
 
 SECTION_RE = re.compile(r"(?m)^## (?P<heading>.+)$")
 CODE_RE = re.compile(r"^(?P<code>\d+A?)\.")
+TRAILING_RULE_RE = re.compile(r"(?:\n\s*---\s*)+$")
 
 
 def split_sections(text: str) -> dict[str, str]:
@@ -80,6 +81,7 @@ def split_sections(text: str) -> dict[str, str]:
         code = code_match.group("code")
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         block = text[match.start():end].strip()
+        block = TRAILING_RULE_RE.sub("", block).rstrip()
         if code in sections:
             raise ValueError(f"duplicate section code: {code}")
         sections[code] = block
