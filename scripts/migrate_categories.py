@@ -67,31 +67,36 @@ CODE_RE = re.compile(r"^(?P<code>\d+A?)\.")
 TRAILING_RULE_RE = re.compile(r"(?:\n\s*---\s*)+$")
 
 
-def split_sections(text: str) -> dict[str, str]:
+def split_sections(text: str) -> tuple[dict[str, str], list[str]]:
     matches = list(SECTION_RE.finditer(text))
     if not matches:
         raise ValueError("no level-2 sections found in ACHIEVEMENTS.md")
 
     sections: dict[str, str] = {}
+    appendices: list[str] = []
     for i, match in enumerate(matches):
         heading = match.group("heading").strip()
-        code_match = CODE_RE.match(heading)
-        if not code_match:
-            raise ValueError(f"section heading has no numeric code: {heading}")
-        code = code_match.group("code")
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         block = text[match.start():end].strip()
         block = TRAILING_RULE_RE.sub("", block).rstrip()
+        code_match = CODE_RE.match(heading)
+        if not code_match:
+            appendices.append(block)
+            continue
+        code = code_match.group("code")
         if code in sections:
             raise ValueError(f"duplicate section code: {code}")
         sections[code] = block
-    return sections
+    return sections, appendices
 
 
-def render_manifest() -> str:
+def render_manifest(appendices: list[str]) -> str:
     links = "\n".join(
         f"- [{c.title}]({c.path}) — {c.description}" for c in CATEGORIES
     )
+    appendix_text = ""
+    if appendices:
+        appendix_text = "\n\n---\n\n" + "\n\n---\n\n".join(appendices) + "\n"
     return f"""# 実績一覧（正本インデックス）
 
 > 核兵器・原子力・被爆地の記憶・核軍縮・関連科学史を、史実イベントに対応する「実績」として整理する。
@@ -125,7 +130,7 @@ GitHub Pages はカテゴリーを同一ページ内で視覚的に区切って�
 ```bash
 python scripts/build_site_v2.py --check --strict-length --strict-tags
 ```
-"""
+{appendix_text}"""
 
 
 def main() -> int:
@@ -134,7 +139,7 @@ def main() -> int:
         print("category migration already applied")
         return 0
 
-    sections = split_sections(text)
+    sections, appendices = split_sections(text)
     expected = {code for category in CATEGORIES for code in category.codes}
     actual = set(sections)
     missing = sorted(expected - actual)
@@ -142,7 +147,7 @@ def main() -> int:
     if missing:
         raise SystemExit("missing expected sections: " + ", ".join(missing))
     if unexpected:
-        raise SystemExit("unmapped sections: " + ", ".join(unexpected))
+        raise SystemExit("unmapped numeric sections: " + ", ".join(unexpected))
 
     for category in CATEGORIES:
         target = ROOT / category.path
@@ -154,8 +159,10 @@ def main() -> int:
         )
         print(f"wrote {target.relative_to(ROOT)}")
 
-    SOURCE.write_text(render_manifest(), encoding="utf-8")
+    SOURCE.write_text(render_manifest(appendices), encoding="utf-8")
     print("rewrote ACHIEVEMENTS.md as category manifest")
+    if appendices:
+        print(f"preserved {len(appendices)} non-category appendix section(s) in ACHIEVEMENTS.md")
     return 0
 
 
