@@ -8,7 +8,7 @@
 
 **GitHub Pages:** https://insuns21.github.io/history_atomic_bomb/
 
-`ACHIEVEMENTS.md` から生成した実績一覧を閲覧できます。タグによる絞り込みにも対応しています。
+実績一覧を1ページで閲覧できます。ページ内ではカテゴリーごとにまとまりを分け、検索とタグによる横断的な絞り込みに対応しています。上部のタグ一覧だけでなく、各実績カードに表示されたタグ自体もクリックして絞り込めます。複数タグを選んだ場合は、選択したタグをすべて含む実績を表示します。
 
 ## このプロジェクトで扱うもの
 
@@ -23,9 +23,9 @@
 
 単純に「核兵器は悪い」と結論だけを置くのではなく、**なぜ作ったのか、なぜ使ったのか、なぜ使った後も増やしたのか、なぜ使わないために持つのか、なぜ減らそうとしてもなくならないのか、そして人類はどう記憶してきたのか**を追います。
 
-## 正本
+## 実績データの正本
 
-実績一覧の single source of truth は [`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md) です。
+[`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md) を正本インデックスとし、実績本文は `achievements/*.md` にカテゴリー別で分割します。カテゴリーの構成と表示順は `ACHIEVEMENTS.md` に記載された一覧で管理します。
 
 実績名やゲーム内の文学的表現は創作できますが、史実、実際の発言、後世の回想、解釈、ゲーム用表現は区別します。年代・帰属などに不確かな点がある場合は `要検証` として扱います。
 
@@ -33,19 +33,19 @@
 
 ## タグ
 
-各実績には複数のタグを付け、GitHub Pages 上で横断的に絞り込めるようにしています。タグの付与方針は [`TAGGING_GUIDELINES.md`](./TAGGING_GUIDELINES.md) を参照してください。
+各実績には複数のタグを明示し、GitHub Pages 上でカテゴリーをまたいで絞り込めるようにしています。タグの付与方針は [`TAGGING_GUIDELINES.md`](./TAGGING_GUIDELINES.md) を参照してください。
 
 ## ビルドと検証
 
 GitHub Pages は `main` への push を契機に GitHub Actions で生成・公開されます。
 
-ローカルでは次のコマンドで、実績データの検証とサイト生成を実行できます。
+ローカルでは次のコマンドで、カテゴリー別Markdownを読み込み、実績データの検証とサイト生成を実行できます。
 
 ```bash
-python scripts/build_site.py --check --strict-length --strict-tags
+python scripts/build_site_v2.py --check --strict-length --strict-tags
 ```
 
-CI では本文長、タグ、重複などを検証したうえで `_site` を GitHub Pages へデプロイします。
+CI では本文長、タグ、重複などをカテゴリー横断で検証したうえで `_site` を GitHub Pages へデプロイします。
 
 ## 編集方針
 
