@@ -18,6 +18,6 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add tmp_achievement_index.tsv
+          git add tmp_achievement_index.tsv tmp_titles.tsv
           git diff --cached --quiet || git commit -m 'Export temporary achievement index'
           git push
