@@ -14,6 +14,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: python scripts/finalize_specific_bodies.py
+      - run: python scripts/patch_two_short_bodies.py
       - run: python scripts/build_site.py --check --strict-length --strict-tags
       - name: Commit final catalog
         run: |
