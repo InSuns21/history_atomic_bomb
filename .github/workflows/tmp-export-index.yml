@@ -1,11 +1,11 @@
-name: Temporary rewrite achievement bodies
+name: Temporary patch and audit achievement bodies
 on:
   push:
     branches: [rewrite-specific-achievement-bodies]
 permissions:
   contents: write
 jobs:
-  rewrite:
+  audit:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -13,12 +13,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python scripts/rewrite_specific_bodies.py
-      - run: python scripts/export_achievement_index.py
-      - name: Commit rewritten catalog
+      - run: python scripts/patch_validator.py
+      - run: python scripts/build_site.py --check --strict-length --strict-tags
+      - name: Commit validator update
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add ACHIEVEMENTS.md tmp_achievement_index.tsv tmp_titles.tsv
-          git diff --cached --quiet || git commit -m 'Rewrite achievement bodies with specific historical detail'
+          git add scripts/build_site.py
+          git diff --cached --quiet || git commit -m 'Reject boilerplate padding in achievement bodies'
           git push
