@@ -20,19 +20,19 @@ FORBIDDEN_META_PHRASES = (
 
 
 def mobile_toc(categories: list[base.Category]) -> str:
-    buttons = [
-        '<button class="category-link" type="button" data-scope="all">全実績</button>'
+    links = [
+        '<a class="category-link" href="#top">全実績</a>'
     ]
-    buttons.extend(
-        f'<button class="category-link" type="button" data-scope="{html.escape(c.id, quote=True)}">'
+    links.extend(
+        f'<a class="category-link" href="#category-{html.escape(c.id, quote=True)}">'
         f'{html.escape(c.title)}'
-        f'</button>'
+        f'</a>'
         for c in categories
     )
     return (
         '<nav class="mobile-toc" aria-label="モバイル目次">'
         '<span class="mobile-toc-label">目次</span>'
-        + ''.join(buttons)
+        + ''.join(links)
         + '</nav>'
     )
 
