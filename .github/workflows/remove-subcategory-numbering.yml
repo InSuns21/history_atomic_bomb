@@ -1,0 +1,42 @@
+name: Remove obsolete subcategory numbering
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/remove-subcategory-numbering.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove numbering prefixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          pattern = re.compile(r'^(## )\d+[A-Z]?\.\s+', re.MULTILINE)
+          for path in sorted(Path('achievements').glob('*.md')):
+              text = path.read_text(encoding='utf-8')
+              updated = pattern.sub(r'\1', text)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+                  print(path)
+          PY
+          if grep -R -nE '^## [0-9]+[A-Z]?\. ' achievements; then
+            echo 'Numbered subcategory headings remain.' >&2
+            exit 1
+          fi
+      - name: Commit cleanup and remove temporary workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/remove-subcategory-numbering.yml
+          git add achievements
+          git commit -m 'Remove obsolete subcategory numbering'
+          git push
