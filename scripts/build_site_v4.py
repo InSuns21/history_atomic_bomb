@@ -27,6 +27,14 @@ def mobile_toc(categories: list[base.Category]) -> str:
     )
 
 
+def remove_empty_representative_artifacts(items: list[legacy.Achievement]) -> None:
+    # The legacy parser can mistake a Markdown horizontal rule (`---`) at the end of
+    # an achievement block for an empty list item and append `代表例：。`.
+    for item in items:
+        if item.body.endswith('代表例：。'):
+            item.body = item.body.removesuffix('代表例：。').rstrip()
+
+
 def render(items: list[legacy.Achievement], categories: list[base.Category]) -> str:
     page = previous.render(items, categories)
 
@@ -99,6 +107,8 @@ def main() -> int:
     except (OSError, ValueError) as exc:
         print(f'::error::{exc}')
         return 2
+
+    remove_empty_representative_artifacts(items)
 
     errors, warnings = legacy.validate(items, args.strict_length, args.strict_tags)
     for warning in warnings:
