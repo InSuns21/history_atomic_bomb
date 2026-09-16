@@ -3,10 +3,20 @@ from __future__ import annotations
 
 import argparse
 import html
+from pathlib import Path
 
 import build_site as legacy
 import build_site_v2 as base
 import build_site_v3 as previous
+
+
+FORBIDDEN_META_PHRASES = (
+    'ゲーム用',
+    'タイトルは創作',
+    '実績名は創作',
+    '実際の発言ではない',
+    '本人の発言ではない',
+)
 
 
 def mobile_toc(categories: list[base.Category]) -> str:
@@ -33,6 +43,20 @@ def remove_empty_representative_artifacts(items: list[legacy.Achievement]) -> No
     for item in items:
         if item.body.endswith('代表例：。'):
             item.body = item.body.removesuffix('代表例：。').rstrip()
+
+
+def validate_meta_wording() -> list[str]:
+    errors: list[str] = []
+    for path in sorted(Path('achievements').glob('*.md')):
+        for line_no, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+            hits = [phrase for phrase in FORBIDDEN_META_PHRASES if phrase in line]
+            if not hits:
+                continue
+            errors.append(
+                f'{path}:{line_no}: メタなタイトル注記は禁止: '
+                f'{", ".join(hits)}。由来や史実上の留保を本文として直接説明してください'
+            )
+    return errors
 
 
 def render(items: list[legacy.Achievement], categories: list[base.Category]) -> str:
@@ -111,6 +135,7 @@ def main() -> int:
     remove_empty_representative_artifacts(items)
 
     errors, warnings = legacy.validate(items, args.strict_length, args.strict_tags)
+    errors.extend(validate_meta_wording())
     for warning in warnings:
         print(f'::warning::{warning}')
     for error in errors:
