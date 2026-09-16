@@ -47,10 +47,10 @@ def render(items: list[legacy.Achievement], categories: list[base.Category]) -> 
         for t in tags
     )
     category_nav = "\n".join(
-        f'<button class="category-link" type="button" data-scope="{esc(c.id)}">'
+        f'<a class="category-link" href="#category-{esc(c.id)}">'
         f'<span class="category-link-title">{esc(c.title)}</span>'
         f'<span class="category-link-count" data-category-count="{esc(c.id)}"></span>'
-        f'</button>'
+        f'</a>'
         for c in categories
     )
 
@@ -92,7 +92,7 @@ def render(items: list[legacy.Achievement], categories: list[base.Category]) -> 
   }
 }
 * { box-sizing:border-box; }
-html { scroll-behavior:smooth; }
+html { scroll-behavior:smooth; scroll-padding-top:1rem; }
 body {
   margin:0;
   font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;
@@ -146,19 +146,14 @@ button { color:inherit; }
   border:1px solid transparent;
   border-radius:.65rem;
   background:transparent;
+  color:inherit;
+  text-decoration:none;
   text-align:left;
   cursor:pointer;
 }
-.category-link:hover { background:var(--hover); }
-.category-link[aria-current="page"] {
-  border-color:color-mix(in srgb,var(--accent) 38%,var(--line));
-  background:var(--card);
-  color:var(--accent);
-  font-weight:800;
-}
+.category-link:hover { background:var(--hover); color:var(--accent); }
 .category-link-title { min-width:0; }
 .category-link-count { color:var(--muted); font-size:.75rem; white-space:nowrap; padding-top:.08rem; }
-.category-link[aria-current="page"] .category-link-count { color:inherit; }
 .tag-panel {
   margin-top:1rem;
   border-top:1px solid var(--line);
@@ -208,17 +203,36 @@ button { color:inherit; }
 .scope-title { margin:.12rem 0 .35rem; font-size:clamp(1.65rem,4vw,2.45rem); line-height:1.35; }
 .scope-description { margin:0; color:var(--muted); max-width:52rem; }
 .scope-filter-note { margin-top:.6rem; color:var(--muted); font-size:.86rem; }
-.category-group { margin:2rem 0 3rem; }
+.category-group { margin:2rem 0 3.4rem; scroll-margin-top:1rem; }
 .category-header {
-  margin:0 0 1rem;
-  padding:.85rem 1rem;
+  margin:0 0 1.25rem;
+  padding:.95rem 1rem;
   border-left:.32rem solid var(--accent);
   border-radius:.2rem .8rem .8rem .2rem;
   background:var(--group);
 }
-.category-header h2 { margin:0; font-size:1.4rem; line-height:1.45; }
+.category-header h2 { margin:0; font-size:1.48rem; line-height:1.4; }
 .category-header p { margin:.2rem 0 0; color:var(--muted); font-size:.9rem; }
 .category-meta { margin-top:.2rem; color:var(--muted); font-size:.78rem; }
+.section-group { margin:1.7rem 0 2.2rem; }
+.section-heading {
+  margin:0 0 .85rem;
+  padding:0 0 .42rem;
+  border-bottom:1px solid var(--line);
+  font-size:1.28rem;
+  line-height:1.45;
+  font-weight:850;
+}
+.subsection-group { margin:1.25rem 0 1.6rem; }
+.subsection-heading {
+  margin:0 0 .7rem;
+  padding-left:.7rem;
+  border-left:.22rem solid color-mix(in srgb,var(--accent) 65%,var(--line));
+  color:var(--fg);
+  font-size:1.16rem;
+  line-height:1.5;
+  font-weight:800;
+}
 .achievement {
   background:var(--card);
   border:1px solid var(--line);
@@ -228,16 +242,17 @@ button { color:inherit; }
   box-shadow:0 1px 0 rgba(0,0,0,.03);
 }
 .achievement.future { border-style:dashed; }
-.achievement h3 { margin:.05rem 0 .25rem; font-size:1.25rem; line-height:1.45; }
-.date { color:var(--accent); font-weight:850; font-variant-numeric:tabular-nums; }
-.section { color:var(--muted); font-size:.84rem; }
+.achievement h5 { margin:.08rem 0 .3rem; font-size:1.08rem; line-height:1.5; }
+.date { color:var(--accent); font-weight:850; font-variant-numeric:tabular-nums; font-size:.84rem; }
 .achievement p { margin:.65rem 0 .5rem; }
 .chips { display:flex; flex-wrap:wrap; gap:.35rem; }
 .card-tag { padding:.1rem .48rem; font-size:.76rem; }
 .empty { display:none; padding:2rem 0; color:var(--muted); }
+.category-empty { margin:.8rem 0 0; color:var(--muted); font-size:.88rem; }
 footer { margin-top:2rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.8rem; }
 .mobile-bar,.sidebar-scrim { display:none; }
 @media (max-width:820px) {
+  html { scroll-padding-top:7.4rem; }
   .app-shell { display:block; }
   .mobile-bar {
     position:sticky;
@@ -278,6 +293,7 @@ footer { margin-top:2rem; padding-top:1.2rem; border-top:1px solid var(--line); 
   }
   .sidebar-scrim.show { display:block; }
   .content-inner { padding:1.35rem 1rem 3rem; }
+  .category-group { scroll-margin-top:7.4rem; }
 }
 </style>
 </head>
@@ -290,15 +306,15 @@ footer { margin-top:2rem; padding-top:1.2rem; border-top:1px solid var(--line); 
 <div class="app-shell">
   <aside id="sidebar" class="sidebar" aria-label="実績ナビゲーション">
     <h1 class="brand">核実績ゲーム</h1>
-    <p class="sidebar-lead">科学史から被爆、復興、冷戦、原子力利用、そして未来まで。章を選んで歴史を読む。</p>
-    <input id="search" class="search" type="search" placeholder="この範囲から実績を検索" aria-label="実績を検索">
+    <p class="sidebar-lead">科学史から被爆、復興、冷戦、原子力利用、そして未来まで。目次から章へ移動して歴史を読む。</p>
+    <input id="search" class="search" type="search" placeholder="全実績から検索" aria-label="実績を検索">
 
     <div class="sidebar-section-title">目次</div>
     <nav class="category-nav" aria-label="カテゴリー">
-      <button class="category-link" type="button" data-scope="all">
+      <a class="category-link" href="#top">
         <span class="category-link-title">全実績・時系列</span>
         <span class="category-link-count" data-category-count="all"></span>
-      </button>
+      </a>
       __CATEGORY_NAV__
     </nav>
 
@@ -312,10 +328,10 @@ footer { margin-top:2rem; padding-top:1.2rem; border-top:1px solid var(--line); 
 
   <main class="content">
     <div class="content-inner">
-      <header class="scope-header">
-        <div id="scope-eyebrow" class="scope-eyebrow"></div>
-        <h2 id="scope-title" class="scope-title"></h2>
-        <p id="scope-description" class="scope-description"></p>
+      <header id="top" class="scope-header">
+        <div class="scope-eyebrow">全カテゴリー</div>
+        <h2 class="scope-title">全実績・時系列</h2>
+        <p class="scope-description">カテゴリーをまたいで、登録されている実績を通して読む。目次は表示条件ではなく、各カテゴリーへのページ内リンク。</p>
         <div id="scope-filter-note" class="scope-filter-note"></div>
       </header>
       <div id="list"></div>
@@ -334,9 +350,6 @@ const count = document.getElementById('count');
 const empty = document.getElementById('empty');
 const search = document.getElementById('search');
 const filterNote = document.getElementById('filter-note');
-const scopeEyebrow = document.getElementById('scope-eyebrow');
-const scopeTitle = document.getElementById('scope-title');
-const scopeDescription = document.getElementById('scope-description');
 const scopeFilterNote = document.getElementById('scope-filter-note');
 const activeTagCount = document.getElementById('active-tag-count');
 const tagPanel = document.getElementById('tag-panel');
@@ -344,26 +357,9 @@ const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebar-toggle');
 const sidebarScrim = document.getElementById('sidebar-scrim');
 const active = new Set();
-let scope = 'all';
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-}
-function scopeFromHash() {
-  const raw = decodeURIComponent(location.hash.replace(/^#/, ''));
-  if (raw === 'all') return 'all';
-  if (categories.some(c => c.id === raw)) return raw;
-  return categories.length ? categories[0].id : 'all';
-}
-function setScope(next) {
-  const target = next || (categories[0] ? categories[0].id : 'all');
-  if (location.hash.replace(/^#/, '') === target) {
-    scope = target;
-    render();
-  } else {
-    location.hash = encodeURIComponent(target);
-  }
-  closeSidebar();
 }
 function closeSidebar() {
   sidebar.classList.remove('open');
@@ -387,79 +383,91 @@ function toggleTag(tag) {
   render();
 }
 function cardHtml(a) {
-  return `<article class="achievement ${a.future?'future':''}"><div class="date">${escapeHtml(a.date)}</div><h3>${escapeHtml(a.title)}</h3><div class="section">${escapeHtml(a.section)}${a.subsection?' / '+escapeHtml(a.subsection):''}</div><p>${escapeHtml(a.body)}</p><div class="chips">${a.tags.map(t=>`<button type="button" class="card-tag" data-card-tag="${escapeHtml(t)}">#${escapeHtml(t)}</button>`).join('')}</div></article>`;
+  return `<article class="achievement ${a.future?'future':''}"><div class="date">${escapeHtml(a.date)}</div><h5>${escapeHtml(a.title)}</h5><p>${escapeHtml(a.body)}</p><div class="chips">${a.tags.map(t=>`<button type="button" class="card-tag" data-card-tag="${escapeHtml(t)}">#${escapeHtml(t)}</button>`).join('')}</div></article>`;
 }
-function currentCategory() {
-  return categories.find(c => c.id === scope) || null;
-}
-function updateScopeHeader(shownCount, scopedCount) {
-  const category = currentCategory();
-  if (scope === 'all' || !category) {
-    scopeEyebrow.textContent = '全カテゴリー';
-    scopeTitle.textContent = '全実績・時系列';
-    scopeDescription.textContent = 'カテゴリーをまたいで、登録されている実績を通して読む。';
-  } else {
-    const index = categories.findIndex(c => c.id === scope);
-    scopeEyebrow.textContent = `カテゴリー ${index + 1} / ${categories.length}`;
-    scopeTitle.textContent = category.title;
-    scopeDescription.textContent = category.description;
+function hierarchyHtml(catItems) {
+  const sections = [];
+  const sectionMap = new Map();
+  for (const item of catItems) {
+    const sectionName = item.section || '';
+    if (!sectionMap.has(sectionName)) {
+      const section = {name: sectionName, subsections: [], subsectionMap: new Map()};
+      sectionMap.set(sectionName, section);
+      sections.push(section);
+    }
+    const section = sectionMap.get(sectionName);
+    const subsectionName = item.subsection || '';
+    if (!section.subsectionMap.has(subsectionName)) {
+      const subsection = {name: subsectionName, items: []};
+      section.subsectionMap.set(subsectionName, subsection);
+      section.subsections.push(subsection);
+    }
+    section.subsectionMap.get(subsectionName).items.push(item);
   }
+
+  return sections.map(section => {
+    const sectionHeading = section.name ? `<h3 class="section-heading">${escapeHtml(section.name)}</h3>` : '';
+    const subsections = section.subsections.map(subsection => {
+      const cards = subsection.items.map(cardHtml).join('');
+      if (!subsection.name) return cards;
+      return `<section class="subsection-group"><h4 class="subsection-heading">${escapeHtml(subsection.name)}</h4>${cards}</section>`;
+    }).join('');
+    return `<section class="section-group">${sectionHeading}${subsections}</section>`;
+  }).join('');
+}
+function updateCategoryCounts(shown) {
+  const filtering = Boolean(search.value.trim() || active.size);
+  const allBadge = document.querySelector('[data-category-count="all"]');
+  if (allBadge) allBadge.textContent = filtering ? `${shown.length}/${items.length}` : items.length;
+  for (const category of categories) {
+    const total = items.filter(a => a.category_id === category.id).length;
+    const visible = shown.filter(a => a.category_id === category.id).length;
+    const badge = document.querySelector(`[data-category-count="${category.id}"]`);
+    if (badge) badge.textContent = filtering ? `${visible}/${total}` : total;
+  }
+}
+function updateFilterHeader(shownCount) {
   const bits = [];
   if (search.value.trim()) bits.push(`検索: 「${search.value.trim()}」`);
   if (active.size) bits.push(`タグ: ${[...active].map(t => '#'+t).join(' × ')}`);
-  scopeFilterNote.textContent = bits.length ? `${shownCount} / ${scopedCount} 実績 — ${bits.join(' / ')}` : `${shownCount} 実績`;
+  scopeFilterNote.textContent = bits.length ? `${shownCount} / ${items.length} 実績 — ${bits.join(' / ')}` : `${shownCount} 実績`;
 }
 function render() {
   const q = search.value.trim().toLowerCase();
-  const scoped = scope === 'all' ? items : items.filter(a => a.category_id === scope);
-  const shown = scoped.filter(a => {
+  const shown = items.filter(a => {
     const hay = [a.date,a.title,a.body,a.section,a.subsection,a.category,...a.tags].join(' ').toLowerCase();
     const tagOK = [...active].every(t => a.tags.includes(t));
     return (!q || hay.includes(q)) && tagOK;
   });
 
-  document.querySelectorAll('[data-scope]').forEach(b => {
-    const selected = b.dataset.scope === scope;
-    if (selected) b.setAttribute('aria-current', 'page');
-    else b.removeAttribute('aria-current');
-  });
-  document.querySelector('[data-category-count="all"]').textContent = items.length;
-  for (const category of categories) {
-    const badge = document.querySelector(`[data-category-count="${category.id}"]`);
-    if (badge) badge.textContent = items.filter(a => a.category_id === category.id).length;
-  }
-
+  updateCategoryCounts(shown);
+  const filtering = Boolean(q || active.size);
   const chunks = [];
-  if (scope === 'all') {
-    for (const category of categories) {
-      const catItems = shown.filter(a => a.category_id === category.id);
-      if (!catItems.length) continue;
-      const total = items.filter(a => a.category_id === category.id).length;
-      chunks.push(`<section class="category-group"><header class="category-header"><h2>${escapeHtml(category.title)}</h2><p>${escapeHtml(category.description)}</p><div class="category-meta">${catItems.length} / ${total} 実績</div></header>${catItems.map(cardHtml).join('')}</section>`);
-    }
-  } else {
-    chunks.push(shown.map(cardHtml).join(''));
+  for (const category of categories) {
+    const catItems = shown.filter(a => a.category_id === category.id);
+    const total = items.filter(a => a.category_id === category.id).length;
+    const content = catItems.length
+      ? hierarchyHtml(catItems)
+      : `<p class="category-empty">${filtering ? '現在の検索・タグ条件に一致する実績はありません。' : '実績はありません。'}</p>`;
+    chunks.push(`<section id="category-${escapeHtml(category.id)}" class="category-group"><header class="category-header"><h2>${escapeHtml(category.title)}</h2><p>${escapeHtml(category.description)}</p><div class="category-meta">${catItems.length} / ${total} 実績</div></header>${content}</section>`);
   }
 
   list.innerHTML = chunks.join('');
-  count.textContent = `${shown.length} / ${scoped.length} 実績`;
+  count.textContent = `${shown.length} / ${items.length} 実績`;
   empty.style.display = shown.length ? 'none' : 'block';
   document.querySelectorAll('[data-card-tag]').forEach(b => b.addEventListener('click', () => toggleTag(b.dataset.cardTag)));
-  updateScopeHeader(shown.length, scoped.length);
+  document.querySelectorAll('.category-link').forEach(link => link.addEventListener('click', closeSidebar));
+  updateFilterHeader(shown.length);
   syncTagState();
 }
 
-document.querySelectorAll('[data-scope]').forEach(b => b.addEventListener('click', () => setScope(b.dataset.scope)));
 document.querySelectorAll('[data-filter-tag]').forEach(b => b.addEventListener('click', () => toggleTag(b.dataset.filterTag)));
 search.addEventListener('input', render);
 document.getElementById('clear').addEventListener('click', () => { active.clear(); search.value=''; render(); });
-window.addEventListener('hashchange', () => { scope = scopeFromHash(); render(); window.scrollTo({top:0, behavior:'smooth'}); });
 if (sidebarToggle) sidebarToggle.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
 sidebarScrim.addEventListener('click', closeSidebar);
 window.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
 
-scope = scopeFromHash();
-if (!location.hash && scope !== 'all') history.replaceState(null, '', `#${encodeURIComponent(scope)}`);
 render();
 </script>
 </body>
