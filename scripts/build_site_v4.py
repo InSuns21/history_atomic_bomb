@@ -15,7 +15,8 @@ def mobile_toc(categories: list[base.Category]) -> str:
     ]
     buttons.extend(
         f'<button class="category-link" type="button" data-scope="{html.escape(c.id, quote=True)}">'
-        f'{html.escape(c.title)}'</n        f'</button>'
+        f'{html.escape(c.title)}'
+        f'</button>'
         for c in categories
     )
     return (
