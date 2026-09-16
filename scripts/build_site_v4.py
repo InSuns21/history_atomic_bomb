@@ -62,6 +62,14 @@ def validate_meta_wording() -> list[str]:
 def render(items: list[legacy.Achievement], categories: list[base.Category]) -> str:
     page = previous.render(items, categories)
 
+    scope_description = (
+        '        <p class="scope-description">カテゴリーをまたいで、登録されている実績を通して読む。'
+        '目次は表示条件ではなく、各カテゴリーへのページ内リンク。</p>\n'
+    )
+    if scope_description not in page:
+        raise RuntimeError('scope description marker not found in build_site_v3 output')
+    page = page.replace(scope_description, '', 1)
+
     css_marker = '  .mobile-bar strong { font-size:.95rem; }\n'
     css_extra = '''  .mobile-bar { flex-wrap:wrap; }
   .mobile-toc {
