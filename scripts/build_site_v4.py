@@ -62,6 +62,37 @@ def validate_meta_wording() -> list[str]:
 def render(items: list[legacy.Achievement], categories: list[base.Category]) -> str:
     page = previous.render(items, categories)
 
+    branding_replacements = (
+        (
+            '<meta name="description" content="核兵器・原子力・被爆史・冷戦・核軍縮・科学史を、実績形式で時系列に読む歴史ゲーム資料。">',
+            '<meta name="description" content="核兵器・原子力・被爆史・冷戦・核軍縮・関連科学史を、ゲーム実績風のカードで時系列にたどる資料庫。">',
+        ),
+        (
+            '<title>核実績ゲーム — Achievements</title>',
+            '<title>核時代資料庫 — 実績でたどる、原子と人類の歴史</title>',
+        ),
+        (
+            '  <strong>核実績ゲーム</strong>',
+            '  <strong>核時代資料庫</strong>',
+        ),
+        (
+            '    <h1 class="brand">核実績ゲーム</h1>',
+            '    <h1 class="brand">核時代資料庫</h1>',
+        ),
+        (
+            '        <div class="scope-eyebrow">全カテゴリー</div>',
+            '        <div class="scope-eyebrow">核時代資料庫</div>',
+        ),
+        (
+            '        <h2 class="scope-title">全実績・時系列</h2>',
+            '        <h2 class="scope-title">実績でたどる、原子と人類の歴史</h2>',
+        ),
+    )
+    for old, new in branding_replacements:
+        if old not in page:
+            raise RuntimeError(f'branding marker not found in build_site_v3 output: {old}')
+        page = page.replace(old, new, 1)
+
     old_mobile_breakpoint = '@media (max-width:820px) {'
     if old_mobile_breakpoint not in page:
         raise RuntimeError('mobile breakpoint marker not found in build_site_v3 output')
@@ -71,9 +102,13 @@ def render(items: list[legacy.Achievement], categories: list[base.Category]) -> 
         '        <p class="scope-description">カテゴリーをまたいで、登録されている実績を通して読む。'
         '目次は表示条件ではなく、各カテゴリーへのページ内リンク。</p>\n'
     )
+    new_scope_description = (
+        '        <p class="scope-description">核兵器・原子力・被爆史・冷戦・核軍縮・関連科学史を、'
+        '史実イベントに対応するゲーム実績風のカードとして時系列に整理する資料庫。</p>\n'
+    )
     if scope_description not in page:
         raise RuntimeError('scope description marker not found in build_site_v3 output')
-    page = page.replace(scope_description, '', 1)
+    page = page.replace(scope_description, new_scope_description, 1)
 
     css_marker = '  .mobile-bar strong { font-size:.95rem; }\n'
     css_extra = '''  .mobile-bar { flex-wrap:wrap; }
