@@ -103,6 +103,41 @@ def render(items: list[legacy.Achievement], categories: list[base.Category]) -> 
         raise RuntimeError('mobile bar CSS marker not found in build_site_v3 output')
     page = page.replace(css_marker, css_marker + css_extra, 1)
 
+    card_css_marker = '.achievement p { margin:.65rem 0 .5rem; }\n'
+    card_css_extra = '''.unlock-condition {
+  margin:.7rem 0 1rem;
+  padding:0 0 .8rem;
+  border-bottom:1px solid var(--line);
+}
+.unlock-condition strong {
+  display:block;
+  margin-bottom:.18rem;
+  color:var(--muted);
+  font-size:.78rem;
+  letter-spacing:.04em;
+}
+.achievement-description { margin-top:0; }
+'''
+    if card_css_marker not in page:
+        raise RuntimeError('achievement paragraph CSS marker not found in build_site_v3 output')
+    page = page.replace(card_css_marker, card_css_marker + card_css_extra, 1)
+
+    old_card_html = '''function cardHtml(a) {
+  return `<article class="achievement ${a.future?'future':''}"><div class="date">${escapeHtml(a.date)}</div><h5>${escapeHtml(a.title)}</h5><p>${escapeHtml(a.body)}</p><div class="chips">${a.tags.map(t=>`<button type="button" class="card-tag" data-card-tag="${escapeHtml(t)}">#${escapeHtml(t)}</button>`).join('')}</div></article>`;
+}
+'''
+    new_card_html = '''function cardHtml(a) {
+  const conditionMatch = a.body.match(/^解除条件：(.+?。)\\s*(.*)$/s);
+  const bodyHtml = conditionMatch
+    ? `<div class="unlock-condition"><strong>解除条件</strong><div>${escapeHtml(conditionMatch[1])}</div></div>${conditionMatch[2] ? `<p class="achievement-description">${escapeHtml(conditionMatch[2])}</p>` : ''}`
+    : `<p class="achievement-description">${escapeHtml(a.body)}</p>`;
+  return `<article class="achievement ${a.future?'future':''}"><div class="date">${escapeHtml(a.date)}</div><h5>${escapeHtml(a.title)}</h5>${bodyHtml}<div class="chips">${a.tags.map(t=>`<button type="button" class="card-tag" data-card-tag="${escapeHtml(t)}">#${escapeHtml(t)}</button>`).join('')}</div></article>`;
+}
+'''
+    if old_card_html not in page:
+        raise RuntimeError('achievement card renderer marker not found in build_site_v3 output')
+    page = page.replace(old_card_html, new_card_html, 1)
+
     old_mobile_header = (
         '  <button id="sidebar-toggle" class="mobile-toggle" type="button" '
         'aria-expanded="false" aria-controls="sidebar">目次・検索</button>\n'
