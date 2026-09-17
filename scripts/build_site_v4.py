@@ -148,7 +148,16 @@ def render(items: list[legacy.Achievement], categories: list[base.Category]) -> 
   render();
 }
 '''
-    new_toggle_tag = '''function visibleCardAnchor() {
+    new_toggle_tag = '''function cardAnchor(card) {
+  if (!card) return null;
+  return {
+    date: card.querySelector('.date')?.textContent || '',
+    title: card.querySelector('h5')?.textContent || '',
+    tags: [...card.querySelectorAll('[data-card-tag]')].map(button => button.dataset.cardTag).join('\\u001f'),
+    top: card.getBoundingClientRect().top,
+  };
+}
+function visibleCardAnchor() {
   const mobileBar = document.querySelector('.mobile-bar');
   const viewportTop = mobileBar && getComputedStyle(mobileBar).display !== 'none'
     ? mobileBar.getBoundingClientRect().bottom
@@ -158,13 +167,7 @@ def render(items: list[legacy.Achievement], categories: list[base.Category]) -> 
     const rect = candidate.getBoundingClientRect();
     return rect.bottom > viewportTop && rect.top < window.innerHeight;
   });
-  if (!card) return null;
-  return {
-    date: card.querySelector('.date')?.textContent || '',
-    title: card.querySelector('h5')?.textContent || '',
-    tags: [...card.querySelectorAll('[data-card-tag]')].map(button => button.dataset.cardTag).join('\\u001f'),
-    top: card.getBoundingClientRect().top,
-  };
+  return cardAnchor(card);
 }
 function restoreCardAnchor(anchor) {
   if (!anchor) return;
@@ -179,9 +182,9 @@ function restoreCardAnchor(anchor) {
     window.scrollBy({top: delta, left: 0, behavior: 'instant'});
   }
 }
-function toggleTag(tag) {
+function toggleTag(tag, preferredAnchor = null) {
   const removing = active.has(tag);
-  const anchor = removing ? visibleCardAnchor() : null;
+  const anchor = preferredAnchor || (removing ? visibleCardAnchor() : null);
   removing ? active.delete(tag) : active.add(tag);
   render(anchor);
 }
@@ -207,6 +210,12 @@ function toggleTag(tag) {
     if old_render_tail not in page:
         raise RuntimeError('render tail marker not found in build_site_v3 output')
     page = page.replace(old_render_tail, new_render_tail, 1)
+
+    old_card_tag_handler = "document.querySelectorAll('[data-card-tag]').forEach(b => b.addEventListener('click', () => toggleTag(b.dataset.cardTag)));"
+    new_card_tag_handler = "document.querySelectorAll('[data-card-tag]').forEach(b => b.addEventListener('click', () => toggleTag(b.dataset.cardTag, cardAnchor(b.closest('.achievement')))));"
+    if old_card_tag_handler not in page:
+        raise RuntimeError('card tag handler marker not found in build_site_v3 output')
+    page = page.replace(old_card_tag_handler, new_card_tag_handler, 1)
 
     old_clear_handler = "document.getElementById('clear').addEventListener('click', () => { active.clear(); search.value=''; render(); });"
     new_clear_handler = '''document.getElementById('clear').addEventListener('click', () => {
