@@ -50,6 +50,44 @@ python scripts/build_site_v2.py --check --strict-length --strict-tags
 
 CI では本文長、タグ、重複などをカテゴリー横断で検証したうえで `_site` を GitHub Pages へデプロイします。
 
+## 実績イラストの生成
+
+イラスト候補と個別プロンプトは [`ILLUSTRATION_PROMPTS.md`](./ILLUSTRATION_PROMPTS.md) で管理する。共通の画風・ModelsLab設定は [`illustrations/config.json`](./illustrations/config.json) に置き、`scripts/generate_illustrations.mjs` が Markdown 内の各 `###` 実績見出しと `Positive prompt` / `Negative prompt` を読み取って生成する。
+
+ModelsLab API キーを環境変数へ設定して実行する。
+
+```bash
+export MODELSLAB_API_KEY="..."
+node scripts/generate_illustrations.mjs
+```
+
+生成画像は `assets/illustrations/` に保存する。すでに同じ実績の `.png` / `.jpg` / `.jpeg` / `.webp` が存在する場合は API を呼ばずにスキップするため、実績・プロンプトを追加した後に同じコマンドを再実行すれば未生成分だけを追加できる。画像と `.meta.json` はリポジトリへコミットする想定。
+
+主なオプション:
+
+```bash
+# APIを呼ばず対象だけ確認
+node scripts/generate_illustrations.mjs --dry-run
+
+# パースされた実績を一覧表示
+node scripts/generate_illustrations.mjs --list
+
+# タイトル・見出しを部分一致で絞る
+node scripts/generate_illustrations.mjs --only="明日も遊びたかった,路面電車"
+
+# 既存画像があっても再生成
+node scripts/generate_illustrations.mjs --force
+
+# 並列生成
+node scripts/generate_illustrations.mjs --concurrency=2
+```
+
+モデルは既定で `flux`。一時的に変更する場合は `MODELSLAB_MODEL_ID`、恒久的に変更する場合は `illustrations/config.json` の `model_id` を変更する。
+
+```bash
+MODELSLAB_MODEL_ID="flux-dev" node scripts/generate_illustrations.mjs
+```
+
 ## 編集方針
 
 被爆や核事故などの惨事は、単なる「達成感」の演出に寄せず、必要に応じて「記録されました」という扱いを想定します。一方で、一覧を惨事だけで埋めず、科学史、救護、復興、文化、軍縮、外交、技術史、希望、未解決問題も同じ時間軸上で扱います。
