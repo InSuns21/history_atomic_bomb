@@ -11,8 +11,28 @@
   "prompt_source": "ILLUSTRATION_PROMPTS.md",
   "poll_interval_ms": 3000,
   "max_poll_attempts": 40,
-  "common_positive": "historical editorial illustration, clearly illustrated and not a documentary photograph, (lineart:1.2), (clean line art:1.2), (contour emphasis:1.4), bold outlines, strong edges, crisp ink lines, sharp edge definition, clean white outline stroke around the subject, white edge highlight, white contour accent, readable white trim separating the subject from the background, (flat colors:1.1), limited palette, clean cel shading, minimal gradients, simple and readable composition, strong silhouette readability, museum-exhibit tone, respectful historical tone, semi-realistic proportions, slightly poster-like clarity, clear foreground and background separation, subtle paper-like texture, restrained color design, no text in the image, no captions, no labels",
-  "common_negative": "photorealistic, documentary photograph, fake archival photo, hyperrealism, painterly brushwork, messy sketch, rough doodle, watercolor bleed, oil painting, soft edges, blurry outlines, weak silhouette, low contrast edges, overrendered shading, heavy gradients, glossy rendering, shiny surfaces, 3D render, CGI, plastic texture, anime exaggeration, chibi, super-deformed style, cute mascot style, fantasy elements, sci-fi effects, magic glow, graphic gore, excessive blood, exposed organs, corpse spectacle, modern objects, modern clothing, contemporary architecture where inappropriate, anachronistic military hardware, inaccurate machinery, readable text, letters, subtitles, speech bubbles, watermark, logo, UI, deformed hands, extra fingers, duplicate people, distorted anatomy, malformed face, cluttered composition, overcrowded scene",
+  "common_positive": "historical editorial illustration, clearly illustrated and not a documentary photograph, original composition based on historical facts rather than any single archival or museum photograph, (lineart:1.2), (clean line art:1.2), (contour emphasis:1.4), bold outlines, strong edges, crisp ink lines, sharp edge definition, clean white outline stroke around the subject, white edge highlight, white contour accent, readable white trim separating the subject from the background, (flat colors:1.1), limited palette, clean cel shading, minimal gradients, simple and readable composition, strong silhouette readability, museum-exhibit tone, respectful historical tone, semi-realistic proportions, slightly poster-like clarity, clear foreground and background separation, subtle paper-like texture, restrained color design, no text in the image, no captions, no labels",
+  "common_negative": "photorealistic, documentary photograph, fake archival photo, exact recreation of a museum catalog image, exact recreation of a news photo, direct copy of an official reference photo, direct copy of a manga panel, direct copy of a book cover, copyrighted character, famous anime character, franchise mascot, recognizable logo, readable brand mark, hyperrealism, painterly brushwork, messy sketch, rough doodle, watercolor bleed, oil painting, soft edges, blurry outlines, weak silhouette, low contrast edges, overrendered shading, heavy gradients, glossy rendering, shiny surfaces, 3D render, CGI, plastic texture, anime exaggeration, chibi, super-deformed style, cute mascot style, fantasy elements, sci-fi effects, magic glow, graphic gore, excessive blood, exposed organs, corpse spectacle, modern objects, modern clothing, contemporary architecture where inappropriate, anachronistic military hardware, inaccurate machinery, readable text, letters, subtitles, speech bubbles, watermark, logo, UI, deformed hands, extra fingers, duplicate people, distorted anatomy, malformed face, cluttered composition, overcrowded scene",
+  "forced_negative_terms": [
+    "museum photo",
+    "archival photo",
+    "news photo",
+    "official catalog image",
+    "direct copy",
+    "manga panel",
+    "comic panel",
+    "book cover",
+    "anime character",
+    "copyrighted character",
+    "franchise mascot",
+    "recognizable logo",
+    "brand logo",
+    "watermark"
+  ],
+  "forced_positive_terms": [
+    "original composition",
+    "based on historical facts rather than copying any single reference image"
+  ],
   "strip_legacy_style_fragments": [
     "historical editorial illustration",
     "semi-realistic gouache and ink",

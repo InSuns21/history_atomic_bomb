@@ -14,7 +14,6 @@ function parseArgs(argv) {
     concurrency: 1,
     config: "illustrations/config.json"
   };
-
   for (const arg of argv) {
     if (arg === "--force") options.force = true;
     else if (arg === "--dry-run") options.dryRun = true;
@@ -36,11 +35,10 @@ function parseArgs(argv) {
     } else if (arg.startsWith("--config=")) {
       options.config = arg.slice("--config=".length);
     } else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/generate_illustrations.mjs [options]\n\nOptions:\n  --dry-run            Show what would be generated or converted without changing files\n  --force              Regenerate even when an image already exists\n  --list               List parsed illustration entries and exit\n  --only=a,b           Generate only entries whose heading/title contains a or b\n  --concurrency=N      Number of concurrent generations (default: 1)\n  --config=PATH        Config JSON path (default: illustrations/config.json)\n  -h, --help           Show this help\n\nBehavior:\n  - Newly generated images are normalized and saved as JPEG (.jpg)\n  - Existing .png/.webp/.jpeg images are converted locally to .jpg without an API call\n  - Existing .jpg images are skipped unless --force is used\n\nEnvironment:\n  MODELSLAB_API_KEY    Required only when an API generation is needed\n  MODELSLAB_MODEL_ID   Optional override for config model_id\n`);
+      console.log(`Usage: node scripts/generate_illustrations.mjs [options]\n\nOptions:\n  --dry-run            Show what would be generated or converted without changing files\n  --force              Regenerate even when an image already exists\n  --list               List parsed illustration entries and exit\n  --only=a,b           Generate only entries whose heading/title contains a or b\n  --concurrency=N      Number of concurrent generations (default: 1)\n  --config=PATH        Config JSON path (default: illustrations/config.json)\n  -h, --help           Show this help\n\nBehavior:\n  - Newly generated images are normalized and saved as JPEG (.jpg)\n  - Existing .png/.webp/.jpeg images are converted locally to .jpg without an API call\n  - Existing .jpg images are skipped unless --force is used\n  - forced_negative_terms in config are always appended to the negative prompt\n\nEnvironment:\n  MODELSLAB_API_KEY    Required only when an API generation is needed\n  MODELSLAB_MODEL_ID   Optional override for config model_id\n`);
       process.exit(0);
     }
   }
-
   return options;
 }
 
@@ -71,7 +69,7 @@ function stripLegacyStyle(prompt, fragments = []) {
 
 function extractCodeBlock(body, label) {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`\\*\\*${escaped}\\*\\*\\s*\\n+\\`\\`\\`(?:text)?\\s*\\n([\\s\\S]*?)\\n\\`\\`\\``, "i");
+  const re = new RegExp('\\*\\*' + escaped + '\\*\\*\\s*\\n+```(?:text)?\\s*\\n([\\s\\S]*?)\\n```', 'i');
   const match = body.match(re);
   return match ? match[1].trim() : null;
 }
@@ -80,7 +78,6 @@ function parsePromptMarkdown(markdown) {
   const headingRe = /^###\s+(.+)$/gm;
   const headings = [...markdown.matchAll(headingRe)];
   const entries = [];
-
   for (let i = 0; i < headings.length; i += 1) {
     const heading = headings[i][1].trim();
     const start = headings[i].index + headings[i][0].length;
@@ -90,7 +87,6 @@ function parsePromptMarkdown(markdown) {
     const positive = extractCodeBlock(body, "Positive prompt");
     const negative = extractCodeBlock(body, "Negative prompt");
     if (!positive || !negative) continue;
-
     const separator = heading.indexOf(" — ");
     const date = separator >= 0 ? heading.slice(0, separator).trim() : "undated";
     const title = separator >= 0 ? heading.slice(separator + 3).trim() : heading;
@@ -100,6 +96,29 @@ function parsePromptMarkdown(markdown) {
   }
 
   return entries;
+}
+
+function toPromptTerms(input) {
+  if (!input) return [];
+  const values = Array.isArray(input) ? input : [input];
+  return values
+    .flatMap((value) => String(value).split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function mergePromptTerms(...sources) {
+  const seen = new Set();
+  const merged = [];
+  for (const source of sources) {
+    for (const term of toPromptTerms(source)) {
+      const key = term.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(term);
+    }
+  }
+  return merged.join(", ");
 }
 
 async function fileExists(file) {
@@ -139,7 +158,6 @@ async function postJson(url, body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body)
   });
-
   const text = await response.text();
   let json;
   try {
@@ -157,7 +175,6 @@ async function postJson(url, body) {
 
 async function waitForOutputs(initial, apiKey, config) {
   let data = initial;
-
   for (let attempt = 0; attempt <= config.max_poll_attempts; attempt += 1) {
     if (data.status === "success" && Array.isArray(data.output) && data.output.length > 0) {
       return data.output;
@@ -170,7 +187,6 @@ async function waitForOutputs(initial, apiKey, config) {
     if (data.status === "error" || data.status === "failed") {
       throw new Error(data.message || data.messege || "ModelsLab generation failed");
     }
-
     if (data.status !== "processing" || !data.fetch_result) {
       throw new Error(`Unexpected ModelsLab response: ${JSON.stringify(data).slice(0, 1500)}`);
     }
@@ -182,7 +198,6 @@ async function waitForOutputs(initial, apiKey, config) {
     await new Promise((resolve) => setTimeout(resolve, config.poll_interval_ms));
     data = await postJson(data.fetch_result, { key: apiKey });
   }
-
   throw new Error("Unexpected polling termination");
 }
 
@@ -207,7 +222,6 @@ async function generateEntry(entry, context) {
   const basePath = path.join(config.output_dir, entry.baseName);
   const jpgPath = `${basePath}.jpg`;
   const existing = await findExistingImage(basePath);
-
   if (existing && !options.force) {
     if (isCanonicalJpg(existing)) {
       return { status: "skipped", entry, file: existing };
@@ -216,7 +230,6 @@ async function generateEntry(entry, context) {
     if (options.dryRun) {
       return { status: "dry-convert", entry, source: existing, file: jpgPath };
     }
-
     const converted = await convertFileToJpeg(existing, jpgPath, config.jpeg_quality);
     if (config.remove_source_after_jpeg !== false && existing !== converted) {
       await fs.unlink(existing);
@@ -225,8 +238,17 @@ async function generateEntry(entry, context) {
   }
 
   const scenePositive = stripLegacyStyle(entry.positive, config.strip_legacy_style_fragments);
-  const positive = [config.common_positive, scenePositive].filter(Boolean).join(", ");
-  const negative = [config.common_negative, entry.negative].filter(Boolean).join(", ");
+  const sceneNegative = stripLegacyStyle(entry.negative, []);
+  const positive = mergePromptTerms(
+    config.common_positive,
+    config.forced_positive_terms,
+    scenePositive
+  );
+  const negative = mergePromptTerms(
+    config.common_negative,
+    config.forced_negative_terms,
+    sceneNegative
+  );
 
   if (options.dryRun) {
     return { status: "dry-run", entry, positive, negative, file: jpgPath };
@@ -248,7 +270,6 @@ async function generateEntry(entry, context) {
 
   const initial = await postJson(config.endpoint, payload);
   const outputs = await waitForOutputs(initial, apiKey, config);
-
   const files = [];
   for (let i = 0; i < outputs.length; i += 1) {
     const suffix = outputs.length > 1 ? `_${i + 1}` : "";
@@ -260,7 +281,6 @@ async function generateEntry(entry, context) {
       )
     );
   }
-
   const metadata = {
     heading: entry.heading,
     title: entry.title,
@@ -277,13 +297,12 @@ async function generateEntry(entry, context) {
   };
   await fs.writeFile(`${basePath}.meta.json`, `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
 
-  return { status: "generated", entry, files };
+  return { status: "generated", entry, files, prompt: positive, negative_prompt: negative };
 }
 
 async function runPool(items, concurrency, worker) {
   const results = new Array(items.length);
   let next = 0;
-
   async function run() {
     while (true) {
       const index = next;
@@ -315,7 +334,6 @@ async function main() {
   if (allEntries.length === 0) {
     throw new Error(`No illustration prompts found in ${config.prompt_source}`);
   }
-
   if (options.list) {
     for (const entry of entries) {
       console.log(`${entry.baseName}\t${entry.heading}`);
@@ -332,7 +350,6 @@ async function main() {
         return Boolean(existing && !options.force);
       })
     );
-
     if (!allApiFree.every(Boolean)) {
       throw new Error("MODELSLAB_API_KEY is required because at least one selected image must be generated.");
     }
@@ -343,11 +360,13 @@ async function main() {
 
   console.log(`Parsed ${allEntries.length} illustration prompts; selected ${entries.length}.`);
   console.log(`Model: ${modelId}; output: ${config.output_dir}; format: jpg`);
+  if (Array.isArray(config.forced_negative_terms) && config.forced_negative_terms.length > 0) {
+    console.log(`Forced negative terms: ${config.forced_negative_terms.join(", ")}`);
+  }
 
   const results = await runPool(entries, options.concurrency, (entry) =>
     generateEntry(entry, { config, options, apiKey, modelId })
   );
-
   let errors = 0;
   for (const result of results) {
     if (result.status === "skipped") {
@@ -365,7 +384,6 @@ async function main() {
       console.error(`[ERR]  ${result.entry.heading}: ${result.error}`);
     }
   }
-
   const summary = results.reduce((acc, result) => {
     acc[result.status] = (acc[result.status] || 0) + 1;
     return acc;
