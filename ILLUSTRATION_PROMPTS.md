@@ -12,11 +12,27 @@
 - 画像内に文字を生成させない。実績名・年月・キャプションはサイト側で重ねる。
 - 初期生成は横長 `16:9` を想定する。カード側でトリミングする場合も主対象を中央寄りに置く。
 
-## 共通ネガティブ方針
+## 共通スタイルプロンプト
 
-各項目の negative prompt には、必要に応じて次を含める。
+> 個別実績のプロンプトへ共通して付与する画風。Node の自動生成では `illustrations/config.json` の同内容を正として、各実績の scene prompt の前後へ結合する。
 
-`photorealistic archival photo, fake documentary photograph, graphic gore, blood, exposed wounds, corpse spectacle, anime, chibi, glossy 3D render, fantasy, modern objects, anachronistic clothing, inaccurate military hardware, readable text, letters, subtitles, watermark, logo, UI, deformed hands, extra fingers, duplicate people`
+**Common Positive prompt**
+
+```text
+historical editorial illustration, clearly illustrated and not a documentary photograph, (lineart:1.2), (clean line art:1.2), (contour emphasis:1.4), bold outlines, strong edges, crisp ink lines, sharp edge definition, clean white outline stroke around the subject, white edge highlight, white contour accent, readable white trim separating the subject from the background, (flat colors:1.1), limited palette, clean cel shading, minimal gradients, simple and readable composition, strong silhouette readability, museum-exhibit tone, respectful historical tone, semi-realistic proportions, slightly poster-like clarity, clear foreground and background separation, subtle paper-like texture, restrained color design, no text in the image, no captions, no labels
+```
+
+**Common Negative prompt**
+
+```text
+photorealistic, documentary photograph, fake archival photo, hyperrealism, painterly brushwork, messy sketch, rough doodle, watercolor bleed, oil painting, soft edges, blurry outlines, weak silhouette, low contrast edges, overrendered shading, heavy gradients, glossy rendering, shiny surfaces, 3D render, CGI, plastic texture, anime exaggeration, chibi, super-deformed style, cute mascot style, fantasy elements, sci-fi effects, magic glow, graphic gore, excessive blood, exposed organs, corpse spectacle, modern objects, modern clothing, contemporary architecture where inappropriate, anachronistic military hardware, inaccurate machinery, readable text, letters, subtitles, speech bubbles, watermark, logo, UI, deformed hands, extra fingers, duplicate people, distorted anatomy, malformed face, cluttered composition, overcrowded scene
+```
+
+自動生成時は、既存の個別 prompt に残る `semi-realistic gouache and ink` など旧画風の共通句をスクリプト側で除去してから、この共通画風を先頭へ付与する。個別 prompt は主に**主題・場所・年代・構図・避けたい誤生成**を担当する。
+
+### 自動生成運用
+
+`node scripts/generate_illustrations.mjs` はこの Markdown の `###` 実績見出しと `Positive prompt` / `Negative prompt` を読み取り、ModelsLab API で画像を生成して `assets/illustrations/` へ保存する。すでに同じ実績の画像が存在する場合は既定でスキップし、`--force` 指定時のみ再生成する。API・モデル・共通ポジネガ・出力サイズは `illustrations/config.json` で管理する。
 
 ---
 
