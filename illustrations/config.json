@@ -5,6 +5,8 @@
   "width": 1024,
   "height": 576,
   "samples": 1,
+  "jpeg_quality": 90,
+  "remove_source_after_jpeg": true,
   "output_dir": "assets/illustrations",
   "prompt_source": "ILLUSTRATION_PROMPTS.md",
   "poll_interval_ms": 3000,
