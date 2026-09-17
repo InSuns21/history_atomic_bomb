@@ -62,6 +62,11 @@ def validate_meta_wording() -> list[str]:
 def render(items: list[legacy.Achievement], categories: list[base.Category]) -> str:
     page = previous.render(items, categories)
 
+    old_mobile_breakpoint = '@media (max-width:820px) {'
+    if old_mobile_breakpoint not in page:
+        raise RuntimeError('mobile breakpoint marker not found in build_site_v3 output')
+    page = page.replace(old_mobile_breakpoint, '@media (max-width:700px) {', 1)
+
     scope_description = (
         '        <p class="scope-description">カテゴリーをまたいで、登録されている実績を通して読む。'
         '目次は表示条件ではなく、各カテゴリーへのページ内リンク。</p>\n'
