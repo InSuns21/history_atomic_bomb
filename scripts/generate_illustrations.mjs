@@ -3,6 +3,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import sharp from "sharp";
 
 function parseArgs(argv) {
   const options = {
@@ -35,7 +36,7 @@ function parseArgs(argv) {
     } else if (arg.startsWith("--config=")) {
       options.config = arg.slice("--config=".length);
     } else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/generate_illustrations.mjs [options]\n\nOptions:\n  --dry-run            Show what would be generated without calling the API\n  --force              Regenerate even when an image already exists\n  --list               List parsed illustration entries and exit\n  --only=a,b           Generate only entries whose heading/title contains a or b\n  --concurrency=N      Number of concurrent generations (default: 1)\n  --config=PATH        Config JSON path (default: illustrations/config.json)\n  -h, --help           Show this help\n\nEnvironment:\n  MODELSLAB_API_KEY    Required unless --dry-run or --list is used\n  MODELSLAB_MODEL_ID   Optional override for config model_id\n`);
+      console.log(`Usage: node scripts/generate_illustrations.mjs [options]\n\nOptions:\n  --dry-run            Show what would be generated or converted without changing files\n  --force              Regenerate even when an image already exists\n  --list               List parsed illustration entries and exit\n  --only=a,b           Generate only entries whose heading/title contains a or b\n  --concurrency=N      Number of concurrent generations (default: 1)\n  --config=PATH        Config JSON path (default: illustrations/config.json)\n  -h, --help           Show this help\n\nBehavior:\n  - Newly generated images are normalized and saved as JPEG (.jpg)\n  - Existing .png/.webp/.jpeg images are converted locally to .jpg without an API call\n  - Existing .jpg images are skipped unless --force is used\n\nEnvironment:\n  MODELSLAB_API_KEY    Required only when an API generation is needed\n  MODELSLAB_MODEL_ID   Optional override for config model_id\n`);
       process.exit(0);
     }
   }
@@ -111,26 +112,25 @@ async function fileExists(file) {
 }
 
 async function findExistingImage(basePath) {
-  for (const ext of [".png", ".jpg", ".jpeg", ".webp"]) {
+  for (const ext of [".jpg", ".jpeg", ".png", ".webp"]) {
     const candidate = `${basePath}${ext}`;
     if (await fileExists(candidate)) return candidate;
   }
   return null;
 }
 
-function extensionFromContentType(contentType, url) {
-  if (contentType?.includes("image/png")) return ".png";
-  if (contentType?.includes("image/webp")) return ".webp";
-  if (contentType?.includes("image/jpeg")) return ".jpg";
+function isCanonicalJpg(filePath) {
+  return path.extname(filePath).toLowerCase() === ".jpg";
+}
 
-  try {
-    const ext = path.extname(new URL(url).pathname).toLowerCase();
-    if ([".png", ".webp", ".jpg", ".jpeg"].includes(ext)) return ext;
-  } catch {
-    // Ignore invalid URL here; download will report the real error.
-  }
+async function convertBufferToJpeg(buffer, outputPath, quality) {
+  await sharp(buffer).jpeg({ quality, mozjpeg: true }).toFile(outputPath);
+  return outputPath;
+}
 
-  return ".png";
+async function convertFileToJpeg(inputPath, outputPath, quality) {
+  await sharp(inputPath).jpeg({ quality, mozjpeg: true }).toFile(outputPath);
+  return outputPath;
 }
 
 async function postJson(url, body) {
@@ -186,17 +186,14 @@ async function waitForOutputs(initial, apiKey, config) {
   throw new Error("Unexpected polling termination");
 }
 
-async function downloadImage(url, basePath) {
+async function downloadAndConvertToJpeg(url, outputPath, quality) {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to download generated image: HTTP ${response.status}`);
   }
 
-  const ext = extensionFromContentType(response.headers.get("content-type"), url);
-  const target = `${basePath}${ext}`;
   const bytes = Buffer.from(await response.arrayBuffer());
-  await fs.writeFile(target, bytes);
-  return target;
+  return convertBufferToJpeg(bytes, outputPath, quality);
 }
 
 function matchesOnly(entry, onlySet) {
@@ -208,10 +205,23 @@ function matchesOnly(entry, onlySet) {
 async function generateEntry(entry, context) {
   const { config, options, apiKey, modelId } = context;
   const basePath = path.join(config.output_dir, entry.baseName);
+  const jpgPath = `${basePath}.jpg`;
   const existing = await findExistingImage(basePath);
 
   if (existing && !options.force) {
-    return { status: "skipped", entry, file: existing };
+    if (isCanonicalJpg(existing)) {
+      return { status: "skipped", entry, file: existing };
+    }
+
+    if (options.dryRun) {
+      return { status: "dry-convert", entry, source: existing, file: jpgPath };
+    }
+
+    const converted = await convertFileToJpeg(existing, jpgPath, config.jpeg_quality);
+    if (config.remove_source_after_jpeg !== false && existing !== converted) {
+      await fs.unlink(existing);
+    }
+    return { status: "converted", entry, source: existing, file: converted };
   }
 
   const scenePositive = stripLegacyStyle(entry.positive, config.strip_legacy_style_fragments);
@@ -219,7 +229,7 @@ async function generateEntry(entry, context) {
   const negative = [config.common_negative, entry.negative].filter(Boolean).join(", ");
 
   if (options.dryRun) {
-    return { status: "dry-run", entry, positive, negative, basePath };
+    return { status: "dry-run", entry, positive, negative, file: jpgPath };
   }
 
   const payload = {
@@ -242,7 +252,13 @@ async function generateEntry(entry, context) {
   const files = [];
   for (let i = 0; i < outputs.length; i += 1) {
     const suffix = outputs.length > 1 ? `_${i + 1}` : "";
-    files.push(await downloadImage(outputs[i], `${basePath}${suffix}`));
+    files.push(
+      await downloadAndConvertToJpeg(
+        outputs[i],
+        `${basePath}${suffix}.jpg`,
+        config.jpeg_quality
+      )
+    );
   }
 
   const metadata = {
@@ -252,6 +268,8 @@ async function generateEntry(entry, context) {
     model_id: modelId,
     width: config.width,
     height: config.height,
+    format: "jpg",
+    jpeg_quality: config.jpeg_quality,
     files,
     generated_at: new Date().toISOString(),
     prompt: positive,
@@ -307,14 +325,24 @@ async function main() {
 
   const apiKey = process.env.MODELSLAB_API_KEY;
   if (!options.dryRun && !apiKey) {
-    throw new Error("MODELSLAB_API_KEY is required. Use --dry-run to inspect without API calls.");
+    const allApiFree = await Promise.all(
+      entries.map(async (entry) => {
+        const basePath = path.join(config.output_dir, entry.baseName);
+        const existing = await findExistingImage(basePath);
+        return Boolean(existing && !options.force);
+      })
+    );
+
+    if (!allApiFree.every(Boolean)) {
+      throw new Error("MODELSLAB_API_KEY is required because at least one selected image must be generated.");
+    }
   }
 
   const modelId = process.env.MODELSLAB_MODEL_ID || config.model_id;
   await fs.mkdir(config.output_dir, { recursive: true });
 
   console.log(`Parsed ${allEntries.length} illustration prompts; selected ${entries.length}.`);
-  console.log(`Model: ${modelId}; output: ${config.output_dir}`);
+  console.log(`Model: ${modelId}; output: ${config.output_dir}; format: jpg`);
 
   const results = await runPool(entries, options.concurrency, (entry) =>
     generateEntry(entry, { config, options, apiKey, modelId })
@@ -324,8 +352,12 @@ async function main() {
   for (const result of results) {
     if (result.status === "skipped") {
       console.log(`[SKIP] ${result.entry.heading} -> ${result.file}`);
+    } else if (result.status === "converted") {
+      console.log(`[JPG]  ${result.entry.heading} -> ${result.file} (from ${result.source})`);
+    } else if (result.status === "dry-convert") {
+      console.log(`[DRY]  ${result.entry.heading} -> convert ${result.source} => ${result.file}`);
     } else if (result.status === "dry-run") {
-      console.log(`[DRY]  ${result.entry.heading} -> ${result.basePath}.*`);
+      console.log(`[DRY]  ${result.entry.heading} -> ${result.file}`);
     } else if (result.status === "generated") {
       console.log(`[OK]   ${result.entry.heading} -> ${result.files.join(", ")}`);
     } else if (result.status === "error") {
