@@ -30,7 +30,8 @@
 - [復興・被爆後・記憶継承](achievements/02_aftermath_memory.md) — 被爆後障害、医療、都市復興、証言、資料館、追悼、外交と記憶の継承。
 - [冷戦・核抑止・軍縮](achievements/03_cold_war_deterrence.md) — 核軍拡、ミサイル、第二撃能力、核抑止、軍縮と、核時代に反復する基本問題。
 - [原子力平和利用・デュアルユース](achievements/04_civil_nuclear.md) — Atoms for Peace、原子炉、核燃料サイクル、原子力事故、核融合発電への道。
-- [各国・地域・同盟の核史](achievements/05_national_cases.md) — 英国、フランス、中国、南アジア、北朝鮮、NATOなど、各国・地域・同盟が核兵器と原子力をどう位置付けたか。
+- [各国・地域の核史](achievements/05_national_cases.md) — 英国、フランス、中国、イスラエル、南アジア、北朝鮮など、各国・地域が核兵器と原子力をどう位置付けたか。
+- [軍事同盟の核戦略 ― NATOとワルシャワ条約機構](achievements/05_alliance_nuclear.md) — NATOとワルシャワ条約機構を、核共有・戦術核・核指揮統制・通常戦から核戦争への移行という同盟戦略から対照する。
 - [未来実績](achievements/06_future.md) — まだ解除されていない未来実績と、核時代の終端として残る二つの可能性。
 
 ## 表示と検証
