@@ -93,6 +93,51 @@ def render(items: list[legacy.Achievement], categories: list[base.Category]) -> 
             raise RuntimeError(f'branding marker not found in build_site_v3 output: {old}')
         page = page.replace(old, new, 1)
 
+    font_head_marker = '<style>\n'
+    font_head = (
+        '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+        '<link href="https://fonts.googleapis.com/css2?'
+        'family=BIZ+UDPGothic:wght@400;700&'
+        'family=M+PLUS+1+Code:wght@400;500;600;700;800;900&display=swap" '
+        'rel="stylesheet">\n'
+    )
+    if font_head_marker not in page:
+        raise RuntimeError('style marker not found in build_site_v3 output')
+    page = page.replace(font_head_marker, font_head + font_head_marker, 1)
+
+    body_font_marker = '  font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;\n'
+    body_font = '  font-family:"BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif;\n'
+    if body_font_marker not in page:
+        raise RuntimeError('body font marker not found in build_site_v3 output')
+    page = page.replace(body_font_marker, body_font, 1)
+
+    ui_font_marker = 'button,input { font:inherit; }\n'
+    ui_font_css = '''button,input,
+.brand,
+.scope-eyebrow,
+.scope-title,
+.sidebar-section-title,
+.category-link,
+.tag-panel summary,
+.sidebar-meta,
+.category-header h2,
+.section-heading,
+.subsection-heading,
+.mobile-bar,
+.mobile-toc,
+.date,
+.achievement h5,
+.unlock-condition strong,
+footer,
+code {
+  font-family:"M PLUS 1 Code","BIZ UDPGothic",monospace;
+}
+'''
+    if ui_font_marker not in page:
+        raise RuntimeError('UI font marker not found in build_site_v3 output')
+    page = page.replace(ui_font_marker, ui_font_marker + ui_font_css, 1)
+
     old_mobile_breakpoint = '@media (max-width:820px) {'
     if old_mobile_breakpoint not in page:
         raise RuntimeError('mobile breakpoint marker not found in build_site_v3 output')
