@@ -30,6 +30,7 @@
 - [1945年8月・被爆](achievements/01_hiroshima_nagasaki.md) — 広島・長崎への原爆投下、直後の被害、救護、そして終戦前後の出来事。
 - [復興・被爆後・記憶継承](achievements/02_aftermath_memory.md) — 被爆後障害、医療、都市復興、資料館、追悼、外交など、被爆後社会と公共記憶の形成。
 - [手塚治虫 ― 戦争体験から、宇宙の眼差しへ](achievements/02_tezuka_osamu.md) — 大阪空襲の体験から、核・戦争・科学文明・生命を描いた作品群と晩年の地球観を追う。
+- [宮崎駿 ― 世界を壊す技術、それでも生きる](achievements/02_miyazaki_hayao.md) — 文明崩壊、大量破壊兵器、軍用機、軍需産業、自然と技術の衝突を描いた作品群を、核との距離を分けながら追う。
 - [張本勲 ― 忘れたい日から、伝える日へ](achievements/02_harimoto_isao.md) — 5歳での広島被爆と姉の死、沈黙、資料館訪問、被爆証言と核廃絶への訴えを個人史として追う。
 - [冷戦・核抑止・軍縮](achievements/03_cold_war_deterrence.md) — 核軍拡、ミサイル、第二撃能力、核抑止、軍縮と、核時代に反復する基本問題。
 - [原子力平和利用・デュアルユース](achievements/04_civil_nuclear.md) — Atoms for Peace、原子炉、核燃料サイクル、原子力事故、核融合発電への道。
