@@ -138,6 +138,61 @@ code {
         raise RuntimeError('UI font marker not found in build_site_v3 output')
     page = page.replace(ui_font_marker, ui_font_marker + ui_font_css, 1)
 
+    palette_replacements = (
+        (
+            '''  --bg:#f5f3ee;
+  --fg:#191919;
+  --muted:#686868;
+  --card:#fff;
+  --line:#d8d3c8;
+  --accent:#9c2f2f;
+  --chip:#ece7dc;
+  --group:#ebe5d8;
+  --sidebar:#efebe2;
+  --hover:#e4ded1;
+  --shadow:0 10px 30px rgba(0,0,0,.08);''',
+            '''  --bg:#e9e9e4;
+  --fg:#202326;
+  --muted:#666b6d;
+  --card:#f5f5f1;
+  --line:#c8cbc7;
+  --accent:#b23f3f;
+  --chip:#e3e5e1;
+  --group:#dde0dc;
+  --sidebar:#dfe0dc;
+  --hover:#d3d6d2;
+  --shadow:0 10px 30px rgba(20,24,26,.09);''',
+        ),
+        (
+            '''    --bg:#171717;
+    --fg:#eee;
+    --muted:#aaa;
+    --card:#202020;
+    --line:#383838;
+    --accent:#ef9b9b;
+    --chip:#2d2d2d;
+    --group:#24211e;
+    --sidebar:#1c1c1c;
+    --hover:#292725;
+    --shadow:0 10px 30px rgba(0,0,0,.28);''',
+            '''    --bg:#181b1d;
+    --fg:#e8e9e6;
+    --muted:#9ca3a6;
+    --card:#222629;
+    --line:#3a4144;
+    --accent:#e06a6a;
+    --chip:#2b3033;
+    --group:#202427;
+    --sidebar:#121517;
+    --hover:#2b3033;
+    --shadow:0 10px 30px rgba(0,0,0,.32);''',
+        ),
+    )
+    for old, new in palette_replacements:
+        if old not in page:
+            raise RuntimeError('palette marker not found in build_site_v3 output')
+        page = page.replace(old, new, 1)
+
     old_mobile_breakpoint = '@media (max-width:820px) {'
     if old_mobile_breakpoint not in page:
         raise RuntimeError('mobile breakpoint marker not found in build_site_v3 output')
