@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import build_site_v4 as previous
+
+
+_render_v4 = previous.render
+
+
+GAME_UI_CSS = r'''
+/* Game archive UI: keep the reading surface calm, make the cards read as HUD entries. */
+.content { counter-reset: chapter; }
+.category-group { counter-increment: chapter; }
+.category-header {
+  position:relative;
+  overflow:hidden;
+  padding:1.45rem 1rem .95rem;
+  border:1px solid var(--line);
+  border-left:.22rem solid var(--accent);
+  border-radius:.2rem;
+  background:color-mix(in srgb,var(--group) 88%,var(--card));
+}
+.category-header::before {
+  content:"CHAPTER " counter(chapter, decimal-leading-zero);
+  position:absolute;
+  top:.35rem;
+  left:1rem;
+  color:var(--accent);
+  font-family:"M PLUS 1 Code","BIZ UDPGothic",monospace;
+  font-size:.64rem;
+  font-weight:800;
+  letter-spacing:.16em;
+}
+.category-header::after {
+  content:"";
+  position:absolute;
+  top:0;
+  right:0;
+  width:3.2rem;
+  height:2px;
+  background:var(--accent);
+  opacity:.72;
+}
+.section-heading {
+  display:flex;
+  align-items:center;
+  gap:.65rem;
+}
+.section-heading::before {
+  content:"SECTION";
+  flex:0 0 auto;
+  padding:.08rem .32rem;
+  border:1px solid var(--line);
+  color:var(--muted);
+  font-family:"M PLUS 1 Code","BIZ UDPGothic",monospace;
+  font-size:.61rem;
+  font-weight:800;
+  letter-spacing:.13em;
+}
+.achievement {
+  position:relative;
+  overflow:hidden;
+  margin:.9rem 0;
+  padding:0 1.1rem 1rem;
+  border:1px solid var(--line);
+  border-radius:.2rem;
+  background:
+    linear-gradient(var(--accent),var(--accent)) left top / 24px 2px no-repeat,
+    linear-gradient(var(--accent),var(--accent)) left top / 2px 24px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 18px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 1px 18px no-repeat,
+    var(--card);
+  box-shadow:0 2px 0 color-mix(in srgb,var(--fg) 5%,transparent);
+  transition:border-color .14s ease, box-shadow .14s ease, transform .14s ease;
+}
+.achievement.future {
+  border-style:dashed;
+  background:
+    linear-gradient(var(--accent),var(--accent)) left top / 24px 2px no-repeat,
+    linear-gradient(var(--accent),var(--accent)) left top / 2px 24px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 18px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 1px 18px no-repeat,
+    color-mix(in srgb,var(--card) 92%,var(--chip));
+}
+.achievement .date {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.8rem;
+  margin:0 -1.1rem .8rem;
+  padding:.43rem 1.1rem .4rem;
+  border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--chip) 64%,transparent);
+  color:var(--accent);
+  font-size:.78rem;
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.035em;
+}
+.achievement .date::before {
+  content:"ARCHIVE ENTRY";
+  color:var(--muted);
+  font-size:.64rem;
+  font-weight:900;
+  letter-spacing:.16em;
+  white-space:nowrap;
+}
+.achievement.future .date::before {
+  content:"LOCKED ENTRY";
+  color:var(--accent);
+}
+.achievement h5 {
+  margin:.08rem 0 .4rem;
+  font-size:1.16rem;
+  line-height:1.48;
+  letter-spacing:.01em;
+}
+.unlock-condition {
+  margin:.72rem 0 1rem;
+  padding:.68rem .75rem .72rem;
+  border:1px solid var(--line);
+  border-left:2px solid var(--accent);
+  background:color-mix(in srgb,var(--chip) 38%,transparent);
+}
+.unlock-condition strong {
+  margin-bottom:.28rem;
+  color:var(--accent);
+  font-size:.68rem;
+  letter-spacing:.12em;
+}
+.achievement-description { line-height:1.85; }
+.chips {
+  gap:.35rem;
+  margin-top:.82rem;
+  padding-top:.68rem;
+  border-top:1px dashed var(--line);
+}
+.card-tag {
+  padding:.12rem .48rem;
+  border-radius:.2rem;
+  background:transparent;
+  font-family:"M PLUS 1 Code","BIZ UDPGothic",monospace;
+  font-size:.72rem;
+  letter-spacing:.015em;
+}
+.card-tag::before {
+  content:"[";
+  color:var(--muted);
+}
+.card-tag::after {
+  content:"]";
+  color:var(--muted);
+}
+@media (hover:hover) {
+  .achievement:hover {
+    transform:translateX(2px);
+    border-color:color-mix(in srgb,var(--accent) 58%,var(--line));
+    box-shadow:-3px 0 0 var(--accent), 0 7px 18px color-mix(in srgb,var(--fg) 8%,transparent);
+  }
+}
+@media (max-width:700px) {
+  .achievement { padding:0 .9rem .9rem; }
+  .achievement .date { margin:0 -.9rem .75rem; padding:.42rem .9rem .38rem; }
+  .achievement h5 { font-size:1.08rem; }
+  .achievement .date::before { font-size:.6rem; letter-spacing:.11em; }
+}
+'''
+
+
+def render(items, categories) -> str:
+    page = _render_v4(items, categories)
+    style_marker = '</style>'
+    if style_marker not in page:
+        raise RuntimeError('style closing marker not found in build_site_v4 output')
+    page = page.replace(style_marker, GAME_UI_CSS + '\n' + style_marker, 1)
+    page = page.replace(
+        'Generated by <code>scripts/build_site_v3.py</code>',
+        'Generated by <code>scripts/build_site_v5.py</code>',
+        1,
+    )
+    return page
+
+
+def main() -> int:
+    previous.render = render
+    return previous.main()
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
