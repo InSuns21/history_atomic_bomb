@@ -52,22 +52,32 @@ CI では本文長、タグ、重複などをカテゴリー横断で検証し�
 
 ## 実績イラストの生成
 
-イラスト候補と個別プロンプトは [`ILLUSTRATION_PROMPTS.md`](./ILLUSTRATION_PROMPTS.md) で管理する。共通の画風・ModelsLab設定は [`illustrations/config.json`](./illustrations/config.json) に置き、`scripts/generate_illustrations.mjs` が Markdown 内の各 `###` 実績見出しと `Positive prompt` / `Negative prompt` を読み取って生成する。
+イラスト候補と個別プロンプトは [`ILLUSTRATION_PROMPTS.md`](./ILLUSTRATION_PROMPTS.md) で管理します。共通の画風・ModelsLab設定は [`illustrations/config.json`](./illustrations/config.json) に置き、`scripts/generate_illustrations.mjs` が Markdown 内の各 `###` 実績見出しと `Positive prompt` / `Negative prompt` を読み取って生成します。
 
-ModelsLab API キーを環境変数へ設定して実行する。
+画像変換には `sharp` を使うため、最初に依存を入れます。
+
+```bash
+npm install
+```
+
+ModelsLab API キーを環境変数へ設定して実行します。
 
 ```bash
 export MODELSLAB_API_KEY="..."
-node scripts/generate_illustrations.mjs
+npm run gen:illustrations
 ```
 
-生成画像は `assets/illustrations/` に保存する。すでに同じ実績の `.png` / `.jpg` / `.jpeg` / `.webp` が存在する場合は API を呼ばずにスキップするため、実績・プロンプトを追加した後に同じコマンドを再実行すれば未生成分だけを追加できる。画像と `.meta.json` はリポジトリへコミットする想定。
+生成画像は `assets/illustrations/` に **JPEG (`.jpg`)** として保存します。ModelsLab から PNG / WebP 等で返された場合も、ダウンロード後に JPEG へ正規化します。JPEG品質は `illustrations/config.json` の `jpeg_quality` で調整できます。
+
+既に同じ実績の `.jpg` が存在する場合は API を呼ばずにスキップします。`.jpeg` / `.png` / `.webp` だけが存在する場合も API は呼ばず、ローカルで `.jpg` へ変換します。既定では変換成功後に元の非JPG画像を削除し、リポジトリ上の画像形式をJPGへ揃えます。実績・プロンプトを追加した後に同じコマンドを再実行すれば、未生成分だけAPI生成されます。
+
+画像と `.meta.json` はリポジトリへコミットする想定です。
 
 主なオプション:
 
 ```bash
-# APIを呼ばず対象だけ確認
-node scripts/generate_illustrations.mjs --dry-run
+# APIを呼ばず、生成・変換対象だけ確認
+npm run gen:illustrations:dry
 
 # パースされた実績を一覧表示
 node scripts/generate_illustrations.mjs --list
@@ -76,16 +86,16 @@ node scripts/generate_illustrations.mjs --list
 node scripts/generate_illustrations.mjs --only="明日も遊びたかった,路面電車"
 
 # 既存画像があっても再生成
-node scripts/generate_illustrations.mjs --force
+npm run gen:illustrations:force
 
 # 並列生成
 node scripts/generate_illustrations.mjs --concurrency=2
 ```
 
-モデルは既定で `flux`。一時的に変更する場合は `MODELSLAB_MODEL_ID`、恒久的に変更する場合は `illustrations/config.json` の `model_id` を変更する。
+モデルは既定で `flux`。一時的に変更する場合は `MODELSLAB_MODEL_ID`、恒久的に変更する場合は `illustrations/config.json` の `model_id` を変更します。
 
 ```bash
-MODELSLAB_MODEL_ID="flux-dev" node scripts/generate_illustrations.mjs
+MODELSLAB_MODEL_ID="flux-dev" npm run gen:illustrations
 ```
 
 ## 編集方針
