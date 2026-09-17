@@ -143,6 +143,82 @@ def render(items: list[legacy.Achievement], categories: list[base.Category]) -> 
         raise RuntimeError('achievement card renderer marker not found in build_site_v3 output')
     page = page.replace(old_card_html, new_card_html, 1)
 
+    old_toggle_tag = '''function toggleTag(tag) {
+  active.has(tag) ? active.delete(tag) : active.add(tag);
+  render();
+}
+'''
+    new_toggle_tag = '''function visibleCardAnchor() {
+  const mobileBar = document.querySelector('.mobile-bar');
+  const viewportTop = mobileBar && getComputedStyle(mobileBar).display !== 'none'
+    ? mobileBar.getBoundingClientRect().bottom
+    : 0;
+  const cards = [...document.querySelectorAll('.achievement')];
+  const card = cards.find(candidate => {
+    const rect = candidate.getBoundingClientRect();
+    return rect.bottom > viewportTop && rect.top < window.innerHeight;
+  });
+  if (!card) return null;
+  return {
+    date: card.querySelector('.date')?.textContent || '',
+    title: card.querySelector('h5')?.textContent || '',
+    tags: [...card.querySelectorAll('[data-card-tag]')].map(button => button.dataset.cardTag).join('\\u001f'),
+    top: card.getBoundingClientRect().top,
+  };
+}
+function restoreCardAnchor(anchor) {
+  if (!anchor) return;
+  const card = [...document.querySelectorAll('.achievement')].find(candidate =>
+    (candidate.querySelector('.date')?.textContent || '') === anchor.date &&
+    (candidate.querySelector('h5')?.textContent || '') === anchor.title &&
+    [...candidate.querySelectorAll('[data-card-tag]')].map(button => button.dataset.cardTag).join('\\u001f') === anchor.tags
+  );
+  if (!card) return;
+  const delta = card.getBoundingClientRect().top - anchor.top;
+  if (Math.abs(delta) > 1) {
+    window.scrollBy({top: delta, left: 0, behavior: 'instant'});
+  }
+}
+function toggleTag(tag) {
+  const removing = active.has(tag);
+  const anchor = removing ? visibleCardAnchor() : null;
+  removing ? active.delete(tag) : active.add(tag);
+  render(anchor);
+}
+'''
+    if old_toggle_tag not in page:
+        raise RuntimeError('tag toggle marker not found in build_site_v3 output')
+    page = page.replace(old_toggle_tag, new_toggle_tag, 1)
+
+    old_render_signature = 'function render() {\n'
+    if old_render_signature not in page:
+        raise RuntimeError('render function marker not found in build_site_v3 output')
+    page = page.replace(old_render_signature, 'function render(anchor = null) {\n', 1)
+
+    old_render_tail = '''  updateFilterHeader(shown.length);
+  syncTagState();
+}
+'''
+    new_render_tail = '''  updateFilterHeader(shown.length);
+  syncTagState();
+  restoreCardAnchor(anchor);
+}
+'''
+    if old_render_tail not in page:
+        raise RuntimeError('render tail marker not found in build_site_v3 output')
+    page = page.replace(old_render_tail, new_render_tail, 1)
+
+    old_clear_handler = "document.getElementById('clear').addEventListener('click', () => { active.clear(); search.value=''; render(); });"
+    new_clear_handler = '''document.getElementById('clear').addEventListener('click', () => {
+  const anchor = visibleCardAnchor();
+  active.clear();
+  search.value='';
+  render(anchor);
+});'''
+    if old_clear_handler not in page:
+        raise RuntimeError('clear filter handler marker not found in build_site_v3 output')
+    page = page.replace(old_clear_handler, new_clear_handler, 1)
+
     old_mobile_header = (
         '  <button id="sidebar-toggle" class="mobile-toggle" type="button" '
         'aria-expanded="false" aria-controls="sidebar">目次・検索</button>\n'
