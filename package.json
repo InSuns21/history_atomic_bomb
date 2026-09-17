@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "scripts": {
+    "gen:illustrations": "node scripts/generate_illustrations.mjs",
+    "gen:illustrations:dry": "node scripts/generate_illustrations.mjs --dry-run",
+    "gen:illustrations:force": "node scripts/generate_illustrations.mjs --force"
+  },
+  "dependencies": {
+    "sharp": "^0.34.4"
+  }
+}
