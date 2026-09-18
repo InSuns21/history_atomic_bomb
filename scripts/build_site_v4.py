@@ -286,6 +286,7 @@ code {
     new_toggle_tag = '''function cardAnchor(card) {
   if (!card) return null;
   return {
+    category: card.closest('.category-group')?.id || '',
     date: card.querySelector('.date')?.textContent || '',
     title: card.querySelector('h5')?.textContent || '',
     tags: [...card.querySelectorAll('[data-card-tag]')].map(button => button.dataset.cardTag).join('\\u001f'),
@@ -307,6 +308,7 @@ function visibleCardAnchor() {
 function restoreCardAnchor(anchor) {
   if (!anchor) return;
   const card = [...document.querySelectorAll('.achievement')].find(candidate =>
+    (candidate.closest('.category-group')?.id || '') === anchor.category &&
     (candidate.querySelector('.date')?.textContent || '') === anchor.date &&
     (candidate.querySelector('h5')?.textContent || '') === anchor.title &&
     [...candidate.querySelectorAll('[data-card-tag]')].map(button => button.dataset.cardTag).join('\\u001f') === anchor.tags
