@@ -555,6 +555,88 @@ def _collect_reference_items(items, categories):
     return references
 
 
+def _apply_grouped_ui(page: str, categories) -> str:
+    category_group_data = json.dumps(GROUP_BY_PATH, ensure_ascii=False).replace("<", "\\u003c")
+    category_group_meta = json.dumps(GROUP_META, ensure_ascii=False).replace("<", "\\u003c")
+    related_category_paths = json.dumps(RELATED_CATEGORY_PATHS, ensure_ascii=False).replace("<", "\\u003c")
+
+    js_marker = "const list = document.getElementById('list');"
+    if js_marker not in page:
+        raise RuntimeError("category grouping JS marker not found")
+
+    grouping_js = (
+        "const categoryGroupByPath = " + category_group_data + ";\n"
+        "const categoryGroupMeta = " + category_group_meta + ";\n"
+        "const relatedCategoryPaths = " + related_category_paths + ";\n"
+        + r"""function categoryGroup(category) {
+  return categoryGroupByPath[category.path] || 'side';
+}
+function relatedLinksHtml(category) {
+  const paths = relatedCategoryPaths[category.path] || [];
+  const links = paths.map(path => {
+    const target = categories.find(candidate => candidate.path === path);
+    return target
+      ? `<a class="related-category-link" href="#category-${escapeHtml(target.id)}">${escapeHtml(target.title)}</a>`
+      : '';
+  }).filter(Boolean);
+  return links.length
+    ? `<div class="related-categories"><span>RELATED</span>${links.join('')}</div>`
+    : '';
+}
+"""
+    )
+    page = page.replace(js_marker, grouping_js + js_marker, 1)
+
+    chunks_marker = "  const chunks = [];\n  for (const category of categories) {"
+    if chunks_marker not in page:
+        raise RuntimeError("category renderer loop marker not found")
+    chunks_new = r"""  const chunks = [];
+  let previousGroup = null;
+  for (const category of categories) {
+    const group = categoryGroup(category);
+    if (group !== previousGroup) {
+      const groupInfo = categoryGroupMeta[group] || {label:'ARCHIVE', description:''};
+      chunks.push(`<div class="route-divider route-divider-${escapeHtml(group)}"><span>${escapeHtml(groupInfo.label)}</span><strong>${escapeHtml(groupInfo.description)}</strong></div>`);
+      previousGroup = group;
+    }"""
+    page = page.replace(chunks_marker, chunks_new, 1)
+
+    category_push_old = r"""    chunks.push(`<section id="category-${escapeHtml(category.id)}" class="category-group"><header class="category-header"><h2>${escapeHtml(category.title)}</h2><p>${escapeHtml(category.description)}</p><div class="category-meta">${catItems.length} / ${total} 実績</div></header>${content}</section>`);"""
+    if category_push_old not in page:
+        raise RuntimeError("category renderer card marker not found")
+    category_push_new = r"""    const related = relatedLinksHtml(category);
+    chunks.push(`<section id="category-${escapeHtml(category.id)}" class="category-group group-${escapeHtml(group)}" data-group="${escapeHtml(group)}"><header class="category-header"><h2>${escapeHtml(category.title)}</h2><p>${escapeHtml(category.description)}</p>${related}<div class="category-meta">${catItems.length} / ${total} 実績</div></header>${content}</section>`);"""
+    page = page.replace(category_push_old, category_push_new, 1)
+
+    nav_pattern = re.compile(
+        r'<nav class="category-nav" aria-label="カテゴリー">.*?</nav>',
+        re.DOTALL,
+    )
+    page, nav_count = nav_pattern.subn(
+        '<nav class="category-nav" aria-label="カテゴリー">'
+        + _grouped_category_nav(categories)
+        + "</nav>",
+        page,
+        count=1,
+    )
+    if nav_count != 1:
+        raise RuntimeError("desktop category navigation marker not found")
+
+    mobile_nav_pattern = re.compile(
+        r'<nav class="mobile-toc" aria-label="モバイル目次">.*?</nav>',
+        re.DOTALL,
+    )
+    page, mobile_nav_count = mobile_nav_pattern.subn(
+        _grouped_mobile_toc(categories),
+        page,
+        count=1,
+    )
+    if mobile_nav_count != 1:
+        raise RuntimeError("mobile category navigation marker not found")
+
+    return page
+
+
 def render(items, categories) -> str:
     display_items = list(items)
     display_items.extend(_collect_reference_items(items, categories))
@@ -562,7 +644,7 @@ def render(items, categories) -> str:
     style_marker = '</style>'
     if style_marker not in page:
         raise RuntimeError('style closing marker not found in build_site_v4 output')
-    page = page.replace(style_marker, GAME_UI_CSS + '\n' + style_marker, 1)
+    page = page.replace(style_marker, GAME_UI_CSS + GROUP_UI_CSS + '\n' + style_marker, 1)
 
     if SYNC_TAG_STATE_OLD not in page:
         raise RuntimeError('tag state synchronization marker not found in build_site_v4 output')
@@ -583,6 +665,8 @@ def render(items, categories) -> str:
     )
     if filter_tag_count == 0:
         raise RuntimeError('filter tag buttons not found in build_site_v4 output')
+
+    page = _apply_grouped_ui(page, categories)
 
     page = page.replace(
         'Generated by <code>scripts/build_site_v3.py</code>',
