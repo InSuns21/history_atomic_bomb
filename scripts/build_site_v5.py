@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import copy
 import re
+import unicodedata
+from pathlib import Path
 
 import build_site_v4 as previous
 
@@ -225,8 +228,64 @@ FILTER_TAG_PATTERN = re.compile(
 )
 
 
+def _reference_key(date: str, title: str) -> str:
+    norm_title = unicodedata.normalize("NFKC", title).replace("🔒", "").strip()
+    return f"{date}|{norm_title}"
+
+
+def _collect_reference_items(items, categories):
+    """Resolve view-only references without duplicating canonical achievement sources."""
+    target_by_key = {item.key: item for item in items}
+    references = []
+    seen = set()
+
+    for category in categories:
+        path = Path(category.path)
+        in_reference_section = False
+        for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if line.startswith("## "):
+                in_reference_section = "参照" in line[3:]
+                continue
+            if not in_reference_section:
+                continue
+
+            match = re.match(r"^- \*\*(?P<label>.+?)\*\*(?:\s+—.*)?$", line.strip())
+            if not match:
+                continue
+
+            label = match.group("label").strip()
+            parts = re.split(r"[　\t]+|\s{2,}", label, maxsplit=1)
+            if len(parts) != 2:
+                raise RuntimeError(
+                    f"{category.path}:{line_no}: 参照実績は『年月　実績名』の形式で記述してください"
+                )
+            date, title = (part.strip() for part in parts)
+            key = _reference_key(date, title)
+            target = target_by_key.get(key)
+            if target is None:
+                raise RuntimeError(
+                    f"{category.path}:{line_no}: 参照先の正本実績が見つかりません: {date} {title}"
+                )
+
+            ref_id = (category.id, key)
+            if ref_id in seen:
+                continue
+            seen.add(ref_id)
+
+            clone = copy.copy(target)
+            clone.category = category.title
+            clone.category_id = category.id
+            clone.section = "既存実績への参照"
+            clone.subsection = f"正本: {getattr(target, 'category', '')}"
+            references.append(clone)
+
+    return references
+
+
 def render(items, categories) -> str:
-    page = _render_v4(items, categories)
+    display_items = list(items)
+    display_items.extend(_collect_reference_items(items, categories))
+    page = _render_v4(display_items, categories)
     style_marker = '</style>'
     if style_marker not in page:
         raise RuntimeError('style closing marker not found in build_site_v4 output')
