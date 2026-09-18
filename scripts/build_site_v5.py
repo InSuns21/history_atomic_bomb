@@ -22,7 +22,6 @@ CATEGORY_GROUPS = (
         (
             "achievements/00_science.md",
             "achievements/00_manhattan_project.md",
-            "achievements/00_japan_wartime_research.md",
             "achievements/00_wartime_politics.md",
             "achievements/01_hiroshima_nagasaki.md",
             "achievements/02_aftermath_memory.md",
@@ -38,6 +37,7 @@ CATEGORY_GROUPS = (
         "本編から枝分かれする資料",
         (
             "achievements/00_atomic_espionage.md",
+            "achievements/00_japan_wartime_research.md",
             "achievements/05_science_sidepaths.md",
             "achievements/05_history_of_ideas.md",
         ),
@@ -71,7 +71,9 @@ GROUP_META = {
 }
 
 RELATED_CATEGORY_PATHS = {
+    "achievements/00_science.md": ("achievements/00_japan_wartime_research.md",),
     "achievements/00_manhattan_project.md": ("achievements/00_atomic_espionage.md",),
+    "achievements/00_wartime_politics.md": ("achievements/00_japan_wartime_research.md",),
     "achievements/01_hiroshima_nagasaki.md": ("achievements/02_harimoto_isao.md",),
     "achievements/02_aftermath_memory.md": ("achievements/02_harimoto_isao.md",),
     "achievements/03_cold_war_deterrence.md": ("achievements/00_atomic_espionage.md",),
