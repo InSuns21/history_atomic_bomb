@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import copy
+import html
+import json
 import re
 import unicodedata
 from pathlib import Path
@@ -10,6 +12,131 @@ import build_site_v4 as previous
 
 
 _render_v4 = previous.render
+
+
+CATEGORY_GROUPS = (
+    (
+        "main",
+        "MAIN ROUTE",
+        "核時代の本編",
+        (
+            "achievements/00_science.md",
+            "achievements/00_manhattan_project.md",
+            "achievements/00_japan_wartime_research.md",
+            "achievements/00_wartime_politics.md",
+            "achievements/01_hiroshima_nagasaki.md",
+            "achievements/02_aftermath_memory.md",
+            "achievements/03_cold_war_deterrence.md",
+            "achievements/04_civil_nuclear.md",
+            "achievements/05_national_cases.md",
+            "achievements/05_alliance_nuclear.md",
+        ),
+    ),
+    (
+        "side",
+        "SIDE ARCHIVE",
+        "本編から枝分かれする資料",
+        (
+            "achievements/00_atomic_espionage.md",
+            "achievements/05_science_sidepaths.md",
+            "achievements/05_history_of_ideas.md",
+        ),
+    ),
+    (
+        "people",
+        "PEOPLE & CULTURE",
+        "個人の記憶と文化史",
+        (
+            "achievements/02_harimoto_isao.md",
+            "achievements/02_tezuka_osamu.md",
+            "achievements/02_miyazaki_hayao.md",
+        ),
+    ),
+    (
+        "future",
+        "FUTURE / LOCKED",
+        "まだ歴史になっていないもの",
+        ("achievements/06_future.md",),
+    ),
+)
+
+GROUP_BY_PATH = {
+    path: group_key
+    for group_key, _label, _description, paths in CATEGORY_GROUPS
+    for path in paths
+}
+GROUP_META = {
+    group_key: {"label": label, "description": description}
+    for group_key, label, description, _paths in CATEGORY_GROUPS
+}
+
+RELATED_CATEGORY_PATHS = {
+    "achievements/00_manhattan_project.md": ("achievements/00_atomic_espionage.md",),
+    "achievements/01_hiroshima_nagasaki.md": ("achievements/02_harimoto_isao.md",),
+    "achievements/02_aftermath_memory.md": ("achievements/02_harimoto_isao.md",),
+    "achievements/03_cold_war_deterrence.md": ("achievements/00_atomic_espionage.md",),
+}
+
+
+def _grouped_category_nav(categories) -> str:
+    by_path = {category.path: category for category in categories}
+    chunks = [
+        '<a class="category-link category-link-all" href="#top">'
+        '<span class="category-link-title">すべて表示</span>'
+        '<span class="category-link-count" data-category-count="all"></span>'
+        '</a>'
+    ]
+    for group_key, label, description, paths in CATEGORY_GROUPS:
+        group_categories = [by_path[path] for path in paths if path in by_path]
+        if not group_categories:
+            continue
+        links = ''.join(
+            '<a class="category-link" href="#category-{id}">'
+            '<span class="category-link-title">{title}</span>'
+            '<span class="category-link-count" data-category-count="{id}"></span>'
+            '</a>'.format(
+                id=html.escape(category.id, quote=True),
+                title=html.escape(category.title),
+            )
+            for category in group_categories
+        )
+        chunks.append(
+            '<section class="category-nav-group category-nav-group-{group}">'
+            '<div class="category-nav-group-title">{label}</div>'
+            '<div class="category-nav-group-description">{description}</div>'
+            '{links}'
+            '</section>'.format(
+                group=group_key,
+                label=html.escape(label),
+                description=html.escape(description),
+                links=links,
+            )
+        )
+    return ''.join(chunks)
+
+
+def _grouped_mobile_toc(categories) -> str:
+    by_path = {category.path: category for category in categories}
+    chunks = ['<a class="category-link" href="#top">先頭</a>']
+    for group_key, label, _description, paths in CATEGORY_GROUPS:
+        group_categories = [by_path[path] for path in paths if path in by_path]
+        if not group_categories:
+            continue
+        chunks.append(
+            f'<span class="mobile-toc-group mobile-toc-group-{group_key}">'
+            f'{html.escape(label)}</span>'
+        )
+        chunks.extend(
+            f'<a class="category-link" href="#category-{html.escape(category.id, quote=True)}">'
+            f'{html.escape(category.title)}</a>'
+            for category in group_categories
+        )
+    return (
+        '<nav class="mobile-toc" aria-label="モバイル目次">'
+        '<span class="mobile-toc-label">目次</span>'
+        + ''.join(chunks)
+        + '</nav>'
+    )
 
 
 GAME_UI_CSS = r'''
@@ -195,6 +322,152 @@ GAME_UI_CSS = r'''
   .achievement .date { margin:0 -.9rem .75rem; padding:.42rem .9rem .38rem; }
   .achievement h5 { font-size:1.08rem; }
   .achievement .date::before { font-size:.6rem; letter-spacing:.11em; }
+}
+'''
+
+
+GROUP_UI_CSS = r'''
+/* Reading hierarchy: main history route first, thematic archives second. */
+.content { counter-reset:main-chapter; }
+.category-group { counter-increment:none; }
+.category-group.group-main { counter-increment:main-chapter; }
+
+.route-divider {
+  margin:4.4rem 0 1.2rem;
+  padding:.75rem 0 .7rem;
+  border-top:2px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.route-divider:first-child { margin-top:2rem; }
+.route-divider span {
+  display:block;
+  color:var(--muted);
+  font-family:"M PLUS 1 Code","BIZ UDPGothic",monospace;
+  font-size:.66rem;
+  font-weight:900;
+  letter-spacing:.16em;
+}
+.route-divider strong {
+  display:block;
+  margin-top:.08rem;
+  font-size:1.05rem;
+  line-height:1.45;
+}
+.route-divider-main { border-top-color:var(--accent); }
+.route-divider-main span { color:var(--accent); }
+
+.category-group .category-header::before {
+  content:"ARCHIVE";
+  color:var(--muted);
+}
+.category-group.group-main .category-header::before {
+  content:"MAIN ROUTE · CHAPTER " counter(main-chapter, decimal-leading-zero);
+  color:var(--accent);
+}
+.category-group.group-side .category-header::before { content:"SIDE ARCHIVE"; }
+.category-group.group-people .category-header::before { content:"PEOPLE & CULTURE"; }
+.category-group.group-future .category-header::before {
+  content:"LOCKED ARCHIVE";
+  color:var(--accent);
+}
+
+.category-group.group-side .category-header,
+.category-group.group-people .category-header {
+  padding:1.25rem 1rem .85rem;
+  border-left-width:2px;
+  border-left-color:var(--line);
+  background:color-mix(in srgb,var(--group) 54%,var(--card));
+}
+.category-group.group-side .category-header::after,
+.category-group.group-people .category-header::after {
+  background:var(--line);
+  opacity:.55;
+}
+.category-group.group-side .category-header h2,
+.category-group.group-people .category-header h2 { font-size:1.34rem; }
+
+.category-group.group-future .category-header {
+  border:1px dashed var(--line);
+  border-left:2px dashed var(--accent);
+  background:color-mix(in srgb,var(--group) 42%,var(--card));
+}
+.category-group.group-future .category-header::after { opacity:.35; }
+
+.related-categories {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:.35rem .55rem;
+  margin-top:.65rem;
+  padding-top:.55rem;
+  border-top:1px dashed var(--line);
+  font-size:.76rem;
+}
+.related-categories > span {
+  color:var(--muted);
+  font-family:"M PLUS 1 Code","BIZ UDPGothic",monospace;
+  font-size:.63rem;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.related-category-link {
+  color:var(--accent);
+  text-decoration:none;
+}
+.related-category-link:hover { text-decoration:underline; }
+
+.category-nav { gap:.38rem; }
+.category-link-all {
+  margin-bottom:.25rem;
+  border-color:var(--line);
+  background:color-mix(in srgb,var(--card) 66%,transparent);
+}
+.category-nav-group {
+  display:grid;
+  gap:.08rem;
+  margin-top:.3rem;
+  padding-top:.62rem;
+  border-top:1px solid var(--line);
+}
+.category-nav-group-title {
+  padding:0 .65rem;
+  color:var(--muted);
+  font-family:"M PLUS 1 Code","BIZ UDPGothic",monospace;
+  font-size:.64rem;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.category-nav-group-main .category-nav-group-title { color:var(--accent); }
+.category-nav-group-description {
+  padding:.08rem .65rem .24rem;
+  color:var(--muted);
+  font-size:.67rem;
+  line-height:1.45;
+}
+.category-nav-group-side .category-link,
+.category-nav-group-people .category-link {
+  padding-top:.43rem;
+  padding-bottom:.43rem;
+  color:color-mix(in srgb,var(--fg) 82%,var(--muted));
+}
+.category-nav-group-future .category-link { border-style:dashed; }
+
+.mobile-toc-group {
+  flex:0 0 auto;
+  margin-left:.35rem;
+  color:var(--muted);
+  font-size:.61rem;
+  font-weight:900;
+  letter-spacing:.09em;
+  white-space:nowrap;
+}
+.mobile-toc-group-main { color:var(--accent); }
+
+@media (max-width:700px) {
+  .route-divider { margin:3rem 0 1rem; }
+  .category-group.group-side .category-header h2,
+  .category-group.group-people .category-header h2 { font-size:1.22rem; }
+  .related-categories { align-items:flex-start; }
 }
 '''
 
