@@ -44,5 +44,32 @@
     "clearly illustrated not a documentary photograph",
     "no readable text",
     "16:9"
-  ]
+  ],
+  "auto_prompts": {
+    "enabled": true,
+    "achievement_dir": "achievements",
+    "body_max_chars": 900,
+    "positive_prefix": "historically grounded editorial scene derived from the repository's current achievement text",
+    "negative_prefix": "do not imitate any existing film, manga, anime, game, book cover, poster, museum photograph, news photograph, official photograph, or branded visual identity",
+    "exclude_source_files": [
+      "02_miyazaki_hayao.md",
+      "02_tezuka_osamu.md"
+    ],
+    "exclude_tags": [
+      "宮崎駿",
+      "手塚治虫",
+      "鉄腕アトム"
+    ],
+    "exclude_titles": [
+      "ゴジラ誕生",
+      "心やさしい科学の子",
+      "友情・努力・原爆",
+      "独立国家、潜航中",
+      "この鼓動が聞こえますか",
+      "はだしのゲンは図書館にはありません",
+      "核ガンジーはゲームだけにして",
+      "ガンジー、悲しみの螺旋",
+      "🔒 先生は猿田博士でしたか？"
+    ]
+  }
 }

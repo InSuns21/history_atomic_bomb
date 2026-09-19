@@ -4,7 +4,7 @@
 
 ## 基本方針
 
-- 全実績へ機械的に付けず、**一枚の具体物・場所・構図で歴史の意味が伝わる実績**を優先する。
+- **権利・史実上のリスクが低い実績は原則として画像生成対象にする。** 個別の構図制御が必要なカードは本ファイルの手書き prompt を優先し、それ以外は achievements/*.md の現行本文から生成スクリプトが安全寄りの prompt を自動補完する。
 - 被爆・事故では、遺体や重傷者の直接的な再現より、三輪車・弁当箱・石段・水・舟艇・路面電車・建物などから出来事を見せる。
 - 史実写真と誤認されないよう、共通して **historical editorial illustration / clearly illustrated, not a documentary photograph** を指定する。
 - 人物の内心、正確な顔貌、写真にしか存在しない瞬間を「再現写真」のように生成しない。
@@ -40,26 +40,30 @@ photorealistic, documentary photograph, fake archival photo, exact recreation of
 
 ### 自動生成運用
 
-`node scripts/generate_illustrations.mjs` はこの Markdown の `###` 実績見出しと `Positive prompt` / `Negative prompt` を読み取り、ModelsLab API で画像を生成して `assets/illustrations/` へ保存する。すでに同じ実績の画像が存在する場合は既定でスキップし、`--force` 指定時のみ再生成する。API・モデル・共通ポジネガ・出力サイズは `illustrations/config.json` で管理する。生成前には、旧共通句の除去に加えて、**権利衝突リスクの高い共通 NG 語**（museum photo, manga panel, book cover, anime character, logo など）を必ず付与する。
+node scripts/generate_illustrations.mjs は、まず本 Markdown の手書き実績 prompt を読み取り、次に achievements/*.md の現行タイトル・年月・タグ・本文を走査する。**手書き prompt がある実績はそれを優先し、未登録で権利リスクの低い実績は本文から自動 prompt を補完する。** これにより、実績追加のたびに数百件の prompt を手作業で複製しなくても未生成分を生成対象にできる。
+
+すでに同じ実績の画像が存在する場合は既定でスキップし、--force 指定時のみ再生成する。API・モデル・共通ポジネガ・出力サイズ・自動生成除外は illustrations/config.json で管理する。生成前には、旧共通句の除去に加えて、**権利衝突リスクの高い共通 NG 語**（museum photo, manga panel, book cover, anime character, logo など）を必ず付与する。
 
 #### 標準ワークフロー
 
 画像は「実績を追加したら全部まとめて生成」ではなく、**少数を確認 → prompt を直す → 系列へ展開**の順で扱う。
 
 1. 先に `achievements/*.md` 側で実績本文・年月・タイトルを確定する。
-2. 本ファイルへ `### 年月日 — 実績名` の見出しを追加する。
-3. `狙い` で「この一枚が何を担当するか」を一文で固定する。
-4. `Positive prompt` に主題、場所・年代、構図、感情トーン、時代物の具体物を書く。
-5. `Negative prompt` に起こりやすい誤生成、権利上避けたい再現、現代物、過剰演出を書く。
-6. `--dry-run` で対象と出力ファイル名を確認する。
-7. `--only` で1～数枚だけ生成し、構図・時代考証・画風を確認する。
-8. 問題があれば prompt を修正し、必要なカードだけ `--force` で再生成する。
-9. 系列で画風が揃ったら残りへ広げる。
+2. npm run gen:illustrations:check で、手書き prompt の旧タイトル・年月ズレ・重複を検査する。
+3. 権利リスクが低く、本文だけで構図を十分に決められるカードは自動補完のまま生成する。
+4. 象徴物、被爆資料、宗教物、複雑な構図など**個別制御したいカードだけ**、本ファイルへ手書き prompt を追加する。
+5. --dry-run で対象と出力ファイル名を確認する。
+6. --only で1～数枚だけ生成し、構図・時代考証・画風を確認する。
+7. 問題があれば prompt を修正し、必要なカードだけ --force で再生成する。
+8. 系列で画風が揃ったら残りへ広げる。
 
 代表的なコマンド:
 
 ```bash
-# パース対象を一覧表示
+# 現行実績と手書きpromptの整合性を検査
+npm run gen:illustrations:check
+
+# 手書き＋自動補完を含む生成対象を一覧表示
 node scripts/generate_illustrations.mjs --list
 
 # 生成・変換対象だけ確認
@@ -85,7 +89,16 @@ node scripts/generate_illustrations.mjs --only="原子雲の上へ"
 - `.png` / `.webp` / `.jpeg` だけがある場合は、API を呼ばずローカルで `.jpg` に正規化する。
 - `--force` は既存画像がある場合にも再生成するため、**構図や prompt を変えたカードだけに限定して使う**。
 - 生成時のモデル、最終 prompt、出力ファイルなどは `.meta.json` に保存する。
-- ファイル名は `### 年月日 — 実績名` を正規化して作るため、実績名変更は生成物のファイル名変更にも影響する。
+- ファイル名は**現行の実績年月・実績名**を正規化して作る。手書き prompt のタイトルが古いままなら --check が STALE として検出する。
+- タイトル変更前の既存画像ファイルは自動リネームしない。変更後の現行タイトルを新規生成対象として扱うため、旧ファイルを残すか削除・移行するかはレビューして決める。
+
+#### 自動補完プロンプトと権利リスク除外
+
+手書き prompt がないカードでは、生成スクリプトが achievements/*.md から **年月・実績名・タグ・本文**を読み、本文の範囲内で scene prompt を組み立てる。自動補完では、特定人物の精密な似顔絵よりも、場所、物品、研究器具、インフラ、風景、非特定人物の行為などを優先し、単一の史料写真を再構成しないよう指示する。
+
+一方、既存作品のビジュアルそのものへ近づきやすい題材は illustrations/config.json の auto_prompts.exclude_source_files / exclude_tags / exclude_titles で自動生成から外す。現在は宮崎駿・手塚治虫の作品群、ゴジラ、はだしのゲン、沈黙の艦隊由来などを保守的に除外している。
+
+除外は「永久に画像化しない」という意味ではない。作品そのものを描かず、**制作史・時代背景・受容史などを独自構図で描ける安全な手書き prompt** を用意した場合は、その手書き prompt が優先され、生成対象へ戻せる。
 
 #### プロンプト設計のチェックリスト
 
@@ -579,7 +592,196 @@ nuclear mushroom cloud, city vaporization, glowing green radiation, graphic casu
 
 ---
 
+
+## 追加手調整プロンプト — 被爆・記憶
+
+> 以下は自動補完でも生成できるが、資料写真の直接再現やショック演出へ寄らないよう、構図を明示しておくカード。
+
+### 1945/08/06 — ターゲットはT字橋
+
+**狙い:** 「都市」ではなく、上空から識別しやすい一本の橋が照準点になったことを見せる。
+
+**Positive prompt**
+```text
+Hiroshima on the morning of August 6 1945 viewed from a high oblique aerial perspective, the distinctive T-shaped Aioi Bridge and surrounding river channels clearly readable as a geographic landmark, a distant B-29 silhouette high above and offset from the bridge, intact pre-blast urban blocks below, restrained ominous calm before the bombing, original map-like editorial composition without copying any wartime reconnaissance photograph, no explosion, no readable labels, 16:9
+```
+
+**Negative prompt**
+```text
+nuclear explosion, mushroom cloud, destroyed city, targeting reticle, bomb sight UI, detailed weapons diagram, readable map labels, exact recreation of reconnaissance photography, heroic aircraft poster
+```
+
+### 1945/08/06 — 三人分の制服
+
+**狙い:** 三人の学生の生活を、遺体ではなく制服・帽子・帯革・ゲートルの断片として示す。
+
+**Positive prompt**
+```text
+respectful still-life editorial illustration of three separate sets of 1945 Japanese middle-school clothing fragments and personal school items arranged with clear spacing on a plain neutral surface, one cap and belt grouping, one dark student uniform grouping, one pair of gaiters grouping, subtle scorched and damaged fabric without graphic bodily traces, each grouping distinct to suggest three different students, quiet memorial tone, original arrangement not matching any museum display or catalog photograph, no readable names, 16:9
+```
+
+**Negative prompt**
+```text
+bodies, gore, burned flesh, exact museum showcase, catalog-photo lighting, mannequin wearing the items, school anime character, modern school uniform, readable name tags, sentimental halo
+```
+
+### 1945/08/06 — たまたま地下室にいただけで
+
+**狙い:** 生死を分けた「地下にいた」という偶然を、階段と遮蔽で見せる。
+
+**Positive prompt**
+```text
+interior of a 1945 Japanese elementary-school basement near central Hiroshima, heavy masonry walls and a short stairway rising toward an overexposed blast-lit entrance, a small child seen only from behind crouched low beside removed shoes, debris and dust entering from above while the underground space remains structurally sheltered, strong contrast between protected darkness below and destructive light above, no identifiable survivor portrait, no bodies, original reconstruction based on general historical context, 16:9
+```
+
+**Negative prompt**
+```text
+graphic casualties, dead children, exact portrait of a known survivor, modern school basement, nuclear fireball visible indoors, supernatural protection, readable school signs
+```
+
+### 1945/08/06 — 白と死の町
+
+**狙い:** 近藤芳美の短歌そのものを文字で再現せず、「白い原子雲の残像」と死の町を視覚的に接続する。
+
+**Positive prompt**
+```text
+post-bomb Hiroshima seen as a quiet devastated urban plain under a pale washed-out sky, broken masonry and skeletal structures receding into distance, a faint white cloud form lingering high above like an afterimage rather than an active explosion, almost monochrome pale gray and dusty white atmosphere, tiny distant human figures for scale, literary but historically grounded editorial composition, no written poem, no exact photograph recreation, 16:9
+```
+
+**Negative prompt**
+```text
+readable poetry, active nuclear blast, glamorous mushroom cloud, fantasy ghost city, corpses, gore, exact famous Hiroshima photograph, dramatic movie poster
+```
+
+### 1945/08/06 — 白と黒
+
+**狙い:** 白い雲と黒い雨を、爆発スペクタクルではなく被爆後の空と降雨の対比で描く。
+
+**Positive prompt**
+```text
+Hiroshima after the atomic blast, pale towering cloud already drifting away in the far background while dense dark rain bands fall over another part of the damaged city, wet streets and river surfaces catching charcoal-colored droplets, a few small evacuee silhouettes seeking shelter, visual emphasis on the contrast of pale sky and soot-dark rainfall, restrained scientific-historical editorial tone, no gore, no rainfall map, 16:9
+```
+
+**Negative prompt**
+```text
+close-up suffering, radioactive green glow, active fireball, weather radar map, scientific infographic, exact archival photo composition, sensational apocalypse art
+```
+
+### 1945/08/06– — 似島はもう一杯です
+
+**狙い:** 似島を「島の巨大な臨時救護拠点」として、舟艇・桟橋・救護所の密度で見せる。
+
+**Positive prompt**
+```text
+Ninoshima island military quarantine and aid facilities in Hiroshima Bay in August 1945, small boats arriving at a crowded wooden landing with wounded evacuees on simple stretchers, exhausted medics and soldiers directing people toward improvised treatment buildings, Seto Inland Sea visible behind, many patients implied through blankets and queues without graphic wounds, logistical overload rather than spectacle, original wide composition not based on a single archival photograph, 16:9
+```
+
+**Negative prompt**
+```text
+graphic injuries, piles of bodies, gore, modern ambulances, modern hospital equipment, exact historical photograph recreation, military triumph scene
+```
+
+### 1945/08/08 — 広島へ敵新型爆弾
+
+**狙い:** 実在紙面をコピーせず、「壊滅から二日後、国内にはまだ『新型爆弾』として届いた」情報環境を描く。
+
+**Positive prompt**
+```text
+Japanese newspaper printing and distribution scene in August 1945, rotary press, bundles of freshly printed newspapers, a worker handing a folded paper to waiting civilians near a dim wartime streetscape, the front page represented only by abstract black headline bars with no readable characters, anxious uncertainty rather than propaganda, original composition emphasizing delayed incomplete information, 16:9
+```
+
+**Negative prompt**
+```text
+readable Japanese headline, exact Asahi Shimbun front page, newspaper scan, logo, modern printing press, smiling propaganda crowd, atomic explosion montage
+```
+
+### 1945/08/12 — 白い下着は火傷防止に有効です
+
+**狙い:** 原爆後も「防空心得」の延長で対策を考えざるを得なかった戦時広報の限界を描く。
+
+**Positive prompt**
+```text
+late-war Japanese civilian air-raid preparedness scene inside a modest 1945 home or neighborhood shelter, white cotton undergarments and light-colored cloth laid beside darker fabric as improvised protective advice, a civilian defense volunteer demonstrating clothing choices to a small family, period blackout gear and simple first-aid items nearby, sober sense of inadequate countermeasures against a new weapon, no readable leaflet text, original composition, 16:9
+```
+
+**Negative prompt**
+```text
+fetishized underwear, comedy scene, readable wartime poster, exact newspaper illustration, modern clothing, nuclear explosion, scientific claim infographic, propaganda glamour
+```
+
+### 1945/08/14–15 — 敵ハ新ニ残虐ナル爆弾ヲ使用シテ
+
+**狙い:** 玉音放送を天皇の肖像ではなく、録音盤・マイク・ラジオ受信というメディアの連鎖で示す。
+
+**Positive prompt**
+```text
+August 1945 Japanese surrender-broadcast editorial scene, a period broadcast microphone and lacquer recording discs in the foreground, radio transmission equipment in a dim studio, dissolving into ordinary households and soldiers gathered around tabletop radios in the background, faces small and non-identifying, somber stillness, no exact portrait of the emperor, no readable transcript, original multi-layer composition, 16:9
+```
+
+**Negative prompt**
+```text
+exact emperor portrait, reenactment of a famous surrender photograph, readable imperial rescript, modern radio studio, celebratory victory parade, nationalistic poster
+```
+
+### 1945/10末 — 焼かれた聖母
+
+**狙い:** 被爆マリアを「奇跡の宗教画」にせず、瓦礫から見つかった損傷した宗教物として描く。
+
+**Positive prompt**
+```text
+late 1945 ruins of Urakami Cathedral, a damaged wooden Marian statue head with scorched surface and missing details being carefully lifted from masonry rubble by gloved hands, cathedral fragments and broken brick behind, object shown from an original oblique angle rather than a museum display view, restrained Catholic memorial context, no miraculous glow, no readable inscription, 16:9
+```
+
+**Negative prompt**
+```text
+exact museum catalog photo, exact modern display case, intact Virgin Mary statue, supernatural halo, miracle rays, gore, bodies, photorealistic relic photography
+```
+
+### 1975 — 聖母の帰還
+
+**狙い:** 被爆マリアが再び浦上天主堂へ置かれることで、遺物が「保存物」から「記憶装置」へ戻る過程を描く。
+
+**Positive prompt**
+```text
+1970s rebuilt Urakami Cathedral interior, clergy and local parishioners carefully carrying a small damaged scorched Marian statue head toward a simple side display or devotional space, modern postwar cathedral architecture clearly distinct from the 1945 ruins, respectful community-centered composition, no close portrait of any individual, original viewpoint not matching press or museum photographs, no readable plaques, 16:9
+```
+
+**Negative prompt**
+```text
+exact press photograph, exact museum display, pristine statue, supernatural glow, crowded tourism scene, readable signs, religious propaganda poster
+```
+
+
 ## 未来実績
+
+
+### 🔒 トラップカード「死の手」発動！
+
+**狙い:** タイトルのカードゲーム感を絵に持ち込まず、ペリメトルを「破壊された指揮系統を迂回する最後の通信網」として描く。
+
+**Positive prompt**
+```text
+speculative but historically grounded Soviet-era underground nuclear command bunker after a catastrophic attack, primary command consoles dark and damaged while a redundant communications relay network remains lit, abstract lines linking buried command posts and distant silos on a wall-sized non-readable schematic, a few small human operators still present to emphasize that the system is not a magical autonomous machine, tense fail-deadly logic without any missile launch, no trading card imagery, no readable launch codes, 16:9
+```
+
+**Negative prompt**
+```text
+trading card, collectible card game, Yu-Gi-Oh-like composition, autonomous evil AI face, active nuclear launch, detailed launch procedure, readable codes, exact control-room photograph, Soviet propaganda poster
+```
+
+### 🔒 主権者は、まだ人間です
+
+**狙い:** ASIによる核廃絶を「AIに取り上げられた未来」と区別し、人間が決定しAIが検証・監査を支える関係として描く。
+
+**Positive prompt**
+```text
+speculative future international nuclear disarmament verification room, human delegates and inspectors seated at the central decision table while an abstract non-humanoid AI audit system appears only as transparent geometric data links connecting sealed storage sites, satellites, sensors and verification instruments, a dismantled nonfunctional warhead transport cradle visible behind glass, humans visually remain the political center of the composition, calm institutional atmosphere, no national leader portraits, no readable treaty text, 16:9
+```
+
+**Negative prompt**
+```text
+humanoid robot ruler, AI throne, humans kneeling to machine, active operational warhead, detailed weapon internals, nationalistic flags dominating frame, readable treaty clauses, current political leader portrait, sci-fi hologram spectacle
+```
 
 ### 🔒 過ちはもう繰り返しません
 

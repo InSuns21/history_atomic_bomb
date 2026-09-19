@@ -3,7 +3,8 @@
   "scripts": {
     "gen:illustrations": "node scripts/generate_illustrations.mjs",
     "gen:illustrations:dry": "node scripts/generate_illustrations.mjs --dry-run",
-    "gen:illustrations:force": "node scripts/generate_illustrations.mjs --force"
+    "gen:illustrations:force": "node scripts/generate_illustrations.mjs --force",
+    "gen:illustrations:check": "node scripts/generate_illustrations.mjs --check"
   },
   "dependencies": {
     "sharp": "^0.34.4"

@@ -30,6 +30,14 @@ jobs:
       - name: Validate achievements and build site
         run: python scripts/build_site_v5.py --check --strict-length --strict-tags
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate illustration prompt coverage
+        run: npm run gen:illustrations:check
+
       - name: Configure GitHub Pages
         if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
