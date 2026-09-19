@@ -3,7 +3,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import sharp from "sharp";
 
 function parseArgs(argv) {
   const options = {
@@ -384,12 +383,24 @@ function isCanonicalJpg(filePath) {
   return path.extname(filePath).toLowerCase() === ".jpg";
 }
 
+let sharpFactory = null;
+
+async function getSharp() {
+  if (!sharpFactory) {
+    const module = await import("sharp");
+    sharpFactory = module.default;
+  }
+  return sharpFactory;
+}
+
 async function convertBufferToJpeg(buffer, outputPath, quality) {
+  const sharp = await getSharp();
   await sharp(buffer).jpeg({ quality, mozjpeg: true }).toFile(outputPath);
   return outputPath;
 }
 
 async function convertFileToJpeg(inputPath, outputPath, quality) {
+  const sharp = await getSharp();
   await sharp(inputPath).jpeg({ quality, mozjpeg: true }).toFile(outputPath);
   return outputPath;
 }
