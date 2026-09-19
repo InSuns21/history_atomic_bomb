@@ -4,7 +4,7 @@
 
 ## 基本方針
 
-- 全実績へ機械的に付けず、**一枚の具体物・場所・構図で歴史の意味が伝わる実績**を優先する。
+- **権利・史実上のリスクが低い実績は原則として画像生成対象にする。** 個別の構図制御が必要なカードは本ファイルの手書き prompt を優先し、それ以外は achievements/*.md の現行本文から生成スクリプトが安全寄りの prompt を自動補完する。
 - 被爆・事故では、遺体や重傷者の直接的な再現より、三輪車・弁当箱・石段・水・舟艇・路面電車・建物などから出来事を見せる。
 - 史実写真と誤認されないよう、共通して **historical editorial illustration / clearly illustrated, not a documentary photograph** を指定する。
 - 人物の内心、正確な顔貌、写真にしか存在しない瞬間を「再現写真」のように生成しない。
@@ -40,26 +40,30 @@ photorealistic, documentary photograph, fake archival photo, exact recreation of
 
 ### 自動生成運用
 
-`node scripts/generate_illustrations.mjs` はこの Markdown の `###` 実績見出しと `Positive prompt` / `Negative prompt` を読み取り、ModelsLab API で画像を生成して `assets/illustrations/` へ保存する。すでに同じ実績の画像が存在する場合は既定でスキップし、`--force` 指定時のみ再生成する。API・モデル・共通ポジネガ・出力サイズは `illustrations/config.json` で管理する。生成前には、旧共通句の除去に加えて、**権利衝突リスクの高い共通 NG 語**（museum photo, manga panel, book cover, anime character, logo など）を必ず付与する。
+node scripts/generate_illustrations.mjs は、まず本 Markdown の手書き実績 prompt を読み取り、次に achievements/*.md の現行タイトル・年月・タグ・本文を走査する。**手書き prompt がある実績はそれを優先し、未登録で権利リスクの低い実績は本文から自動 prompt を補完する。** これにより、実績追加のたびに数百件の prompt を手作業で複製しなくても未生成分を生成対象にできる。
+
+すでに同じ実績の画像が存在する場合は既定でスキップし、--force 指定時のみ再生成する。API・モデル・共通ポジネガ・出力サイズ・自動生成除外は illustrations/config.json で管理する。生成前には、旧共通句の除去に加えて、**権利衝突リスクの高い共通 NG 語**（museum photo, manga panel, book cover, anime character, logo など）を必ず付与する。
 
 #### 標準ワークフロー
 
 画像は「実績を追加したら全部まとめて生成」ではなく、**少数を確認 → prompt を直す → 系列へ展開**の順で扱う。
 
 1. 先に `achievements/*.md` 側で実績本文・年月・タイトルを確定する。
-2. 本ファイルへ `### 年月日 — 実績名` の見出しを追加する。
-3. `狙い` で「この一枚が何を担当するか」を一文で固定する。
-4. `Positive prompt` に主題、場所・年代、構図、感情トーン、時代物の具体物を書く。
-5. `Negative prompt` に起こりやすい誤生成、権利上避けたい再現、現代物、過剰演出を書く。
-6. `--dry-run` で対象と出力ファイル名を確認する。
-7. `--only` で1～数枚だけ生成し、構図・時代考証・画風を確認する。
-8. 問題があれば prompt を修正し、必要なカードだけ `--force` で再生成する。
-9. 系列で画風が揃ったら残りへ広げる。
+2. npm run gen:illustrations:check で、手書き prompt の旧タイトル・年月ズレ・重複を検査する。
+3. 権利リスクが低く、本文だけで構図を十分に決められるカードは自動補完のまま生成する。
+4. 象徴物、被爆資料、宗教物、複雑な構図など**個別制御したいカードだけ**、本ファイルへ手書き prompt を追加する。
+5. --dry-run で対象と出力ファイル名を確認する。
+6. --only で1～数枚だけ生成し、構図・時代考証・画風を確認する。
+7. 問題があれば prompt を修正し、必要なカードだけ --force で再生成する。
+8. 系列で画風が揃ったら残りへ広げる。
 
 代表的なコマンド:
 
 ```bash
-# パース対象を一覧表示
+# 現行実績と手書きpromptの整合性を検査
+npm run gen:illustrations:check
+
+# 手書き＋自動補完を含む生成対象を一覧表示
 node scripts/generate_illustrations.mjs --list
 
 # 生成・変換対象だけ確認
@@ -85,7 +89,16 @@ node scripts/generate_illustrations.mjs --only="原子雲の上へ"
 - `.png` / `.webp` / `.jpeg` だけがある場合は、API を呼ばずローカルで `.jpg` に正規化する。
 - `--force` は既存画像がある場合にも再生成するため、**構図や prompt を変えたカードだけに限定して使う**。
 - 生成時のモデル、最終 prompt、出力ファイルなどは `.meta.json` に保存する。
-- ファイル名は `### 年月日 — 実績名` を正規化して作るため、実績名変更は生成物のファイル名変更にも影響する。
+- ファイル名は**現行の実績年月・実績名**を正規化して作る。手書き prompt のタイトルが古いままなら --check が STALE として検出する。
+- タイトル変更前の既存画像ファイルは自動リネームしない。変更後の現行タイトルを新規生成対象として扱うため、旧ファイルを残すか削除・移行するかはレビューして決める。
+
+#### 自動補完プロンプトと権利リスク除外
+
+手書き prompt がないカードでは、生成スクリプトが achievements/*.md から **年月・実績名・タグ・本文**を読み、本文の範囲内で scene prompt を組み立てる。自動補完では、特定人物の精密な似顔絵よりも、場所、物品、研究器具、インフラ、風景、非特定人物の行為などを優先し、単一の史料写真を再構成しないよう指示する。
+
+一方、既存作品のビジュアルそのものへ近づきやすい題材は illustrations/config.json の auto_prompts.exclude_source_files / exclude_tags / exclude_titles で自動生成から外す。現在は宮崎駿・手塚治虫の作品群、ゴジラ、はだしのゲン、沈黙の艦隊由来などを保守的に除外している。
+
+除外は「永久に画像化しない」という意味ではない。作品そのものを描かず、**制作史・時代背景・受容史などを独自構図で描ける安全な手書き prompt** を用意した場合は、その手書き prompt が優先され、生成対象へ戻せる。
 
 #### プロンプト設計のチェックリスト
 
