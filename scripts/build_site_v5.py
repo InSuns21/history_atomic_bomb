@@ -513,18 +513,13 @@ SYNC_TAG_STATE_NEW = """  document.querySelectorAll('[data-filter-tag]').forEach
   });
 """
 
-REFERENCE_CARD_OLD = (
-    '  return `<article class="achievement ${a.future?\'future\':\'\'}"><div class="date">${escapeHtml(a.date)}</div>'
-    '<h5>${escapeHtml(a.title)}</h5>${bodyHtml}<div class="chips">'
-)
-REFERENCE_CARD_NEW = (
-    "  const referenceClass = a.is_reference ? ' reference' : '';\\n"
-    "  const referenceSource = a.is_reference && a.canonical_category\\n"
-    "    ? `<div class=\\\"reference-source\\\">正本: ${escapeHtml(a.canonical_category)}</div>`\\n"
-    "    : '';\\n"
-    '  return `<article class="achievement ${a.future?\'future\':\'\'}${referenceClass}"><div class="date">${escapeHtml(a.date)}</div>'
-    '<h5>${escapeHtml(a.title)}</h5>${referenceSource}${bodyHtml}<div class="chips">'
-)
+REFERENCE_CARD_OLD = """  return `<article class="achievement ${a.future?'future':''}"><div class="date">${escapeHtml(a.date)}</div><h5>${escapeHtml(a.title)}</h5>${bodyHtml}<div class="chips">"""
+
+REFERENCE_CARD_NEW = """  const referenceClass = a.is_reference ? ' reference' : '';
+  const referenceSource = a.is_reference && a.canonical_category
+    ? `<div class="reference-source">正本: ${escapeHtml(a.canonical_category)}</div>`
+    : '';
+  return `<article class="achievement ${a.future?'future':''}${referenceClass}"><div class="date">${escapeHtml(a.date)}</div><h5>${escapeHtml(a.title)}</h5>${referenceSource}${bodyHtml}<div class="chips">"""
 
 CARD_TAG_OLD = '<button type="button" class="card-tag" data-card-tag="${escapeHtml(t)}">#${escapeHtml(t)}</button>'
 CARD_TAG_NEW = (
@@ -546,7 +541,7 @@ def _reference_key(date: str, title: str) -> str:
 
 def _date_sort_key(date: str) -> tuple[int, int, int]:
     """Best-effort start-date key used only to merge reference cards into an existing timeline."""
-    match = re.search(r"(?P<year>\\d{4})(?:/(?P<month>\\d{1,2}))?(?:/(?P<day>\\d{1,2}))?", date)
+    match = re.search(r"(?P<year>\d{4})(?:/(?P<month>\d{1,2}))?(?:/(?P<day>\d{1,2}))?", date)
     if not match:
         return (9999, 13, 32)
     return (
@@ -580,12 +575,12 @@ def _collect_reference_items(items, categories):
             if not in_reference_section:
                 continue
 
-            match = re.match(r"^- \\*\\*(?P<label>.+?)\\*\\*(?:\\s+—.*)?$", line.strip())
+            match = re.match(r"^- \*\*(?P<label>.+?)\*\*(?:\s+—.*)?$", line.strip())
             if not match:
                 continue
 
             label = match.group("label").strip()
-            parts = re.split(r"[　\\t]+|\\s{2,}", label, maxsplit=1)
+            parts = re.split(r"[　\t]+|\s{2,}", label, maxsplit=1)
             if len(parts) != 2:
                 raise RuntimeError(
                     f"{category.path}:{line_no}: 参照実績は『年月　実績名』の形式で記述してください"
