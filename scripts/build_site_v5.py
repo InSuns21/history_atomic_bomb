@@ -37,6 +37,7 @@ CATEGORY_GROUPS = (
         "本編から枝分かれする資料",
         (
             "achievements/00_atomic_espionage.md",
+            "achievements/05_greenland_nuclear.md",
             "achievements/00_japan_wartime_research.md",
             "achievements/05_science_sidepaths.md",
             "achievements/05_history_of_ideas.md",
@@ -76,7 +77,11 @@ RELATED_CATEGORY_PATHS = {
     "achievements/00_wartime_politics.md": ("achievements/00_japan_wartime_research.md",),
     "achievements/01_hiroshima_nagasaki.md": ("achievements/02_harimoto_isao.md",),
     "achievements/02_aftermath_memory.md": ("achievements/02_harimoto_isao.md",),
-    "achievements/03_cold_war_deterrence.md": ("achievements/00_atomic_espionage.md",),
+    "achievements/03_cold_war_deterrence.md": (
+        "achievements/00_atomic_espionage.md",
+        "achievements/05_greenland_nuclear.md",
+    ),
+    "achievements/05_greenland_nuclear.md": ("achievements/03_cold_war_deterrence.md",),
 }
 
 
@@ -215,6 +220,24 @@ GAME_UI_CSS = r'''
     linear-gradient(var(--line),var(--line)) right bottom / 18px 1px no-repeat,
     linear-gradient(var(--line),var(--line)) right bottom / 1px 18px no-repeat,
     color-mix(in srgb,var(--card) 92%,var(--chip));
+}
+.achievement.reference {
+  border-left:2px solid color-mix(in srgb,var(--accent) 72%,var(--line));
+  background:
+    linear-gradient(var(--accent),var(--accent)) left top / 24px 2px no-repeat,
+    linear-gradient(var(--accent),var(--accent)) left top / 2px 24px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 18px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 1px 18px no-repeat,
+    color-mix(in srgb,var(--card) 94%,var(--group));
+}
+.achievement.reference .date::before { content:"REFERENCE"; }
+.reference-source {
+  margin:-.12rem 0 .46rem;
+  color:var(--muted);
+  font-family:"M PLUS 1 Code","BIZ UDPGothic",monospace;
+  font-size:.68rem;
+  font-weight:800;
+  letter-spacing:.06em;
 }
 .achievement .date {
   display:flex;
@@ -490,6 +513,19 @@ SYNC_TAG_STATE_NEW = """  document.querySelectorAll('[data-filter-tag]').forEach
   });
 """
 
+REFERENCE_CARD_OLD = (
+    '  return `<article class="achievement ${a.future?\'future\':\'\'}"><div class="date">${escapeHtml(a.date)}</div>'
+    '<h5>${escapeHtml(a.title)}</h5>${bodyHtml}<div class="chips">'
+)
+REFERENCE_CARD_NEW = (
+    "  const referenceClass = a.is_reference ? ' reference' : '';\\n"
+    "  const referenceSource = a.is_reference && a.canonical_category\\n"
+    "    ? `<div class=\\\"reference-source\\\">正本: ${escapeHtml(a.canonical_category)}</div>`\\n"
+    "    : '';\\n"
+    '  return `<article class="achievement ${a.future?\'future\':\'\'}${referenceClass}"><div class="date">${escapeHtml(a.date)}</div>'
+    '<h5>${escapeHtml(a.title)}</h5>${referenceSource}${bodyHtml}<div class="chips">'
+)
+
 CARD_TAG_OLD = '<button type="button" class="card-tag" data-card-tag="${escapeHtml(t)}">#${escapeHtml(t)}</button>'
 CARD_TAG_NEW = (
     '<button type="button" class="card-tag" data-card-tag="${escapeHtml(t)}" aria-pressed="false">'
@@ -508,28 +544,48 @@ def _reference_key(date: str, title: str) -> str:
     return f"{date}|{norm_title}"
 
 
+def _date_sort_key(date: str) -> tuple[int, int, int]:
+    """Best-effort start-date key used only to merge reference cards into an existing timeline."""
+    match = re.search(r"(?P<year>\\d{4})(?:/(?P<month>\\d{1,2}))?(?:/(?P<day>\\d{1,2}))?", date)
+    if not match:
+        return (9999, 13, 32)
+    return (
+        int(match.group("year")),
+        int(match.group("month") or 0),
+        int(match.group("day") or 0),
+    )
+
+
 def _collect_reference_items(items, categories):
-    """Resolve view-only references without duplicating canonical achievement sources."""
+    """Resolve view-only references while keeping the canonical achievement in one source file."""
     target_by_key = {item.key: item for item in items}
     references = []
     seen = set()
 
     for category in categories:
         path = Path(category.path)
+        current_section = ""
+        reference_target_section = ""
         in_reference_section = False
         for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if line.startswith("## "):
-                in_reference_section = "参照" in line[3:]
+                heading = line[3:].strip()
+                if "参照" in heading:
+                    in_reference_section = True
+                    reference_target_section = current_section
+                else:
+                    in_reference_section = False
+                    current_section = heading
                 continue
             if not in_reference_section:
                 continue
 
-            match = re.match(r"^- \*\*(?P<label>.+?)\*\*(?:\s+—.*)?$", line.strip())
+            match = re.match(r"^- \\*\\*(?P<label>.+?)\\*\\*(?:\\s+—.*)?$", line.strip())
             if not match:
                 continue
 
             label = match.group("label").strip()
-            parts = re.split(r"[　\t]+|\s{2,}", label, maxsplit=1)
+            parts = re.split(r"[　\\t]+|\\s{2,}", label, maxsplit=1)
             if len(parts) != 2:
                 raise RuntimeError(
                     f"{category.path}:{line_no}: 参照実績は『年月　実績名』の形式で記述してください"
@@ -550,11 +606,38 @@ def _collect_reference_items(items, categories):
             clone = copy.copy(target)
             clone.category = category.title
             clone.category_id = category.id
-            clone.section = "既存実績への参照"
-            clone.subsection = f"正本: {getattr(target, 'category', '')}"
+            clone.section = reference_target_section or target.section
+            clone.subsection = ""
+            clone.is_reference = True
+            clone.canonical_category = getattr(target, "category", "")
+            clone.canonical_category_id = getattr(target, "category_id", "")
+            clone.canonical_source_file = getattr(target, "source_file", "")
             references.append(clone)
 
     return references
+
+
+def _merge_reference_items(items, references, categories):
+    """Insert references into their target section by date without reordering canonical cards."""
+    refs_by_category = {}
+    for reference in references:
+        refs_by_category.setdefault(reference.category_id, {}).setdefault(reference.section, []).append(reference)
+    for sections in refs_by_category.values():
+        for refs in sections.values():
+            refs.sort(key=lambda item: _date_sort_key(item.date))
+
+    merged = []
+    for category in categories:
+        category_items = [item for item in items if item.category_id == category.id]
+        pending_by_section = refs_by_category.get(category.id, {})
+        for item in category_items:
+            pending = pending_by_section.get(item.section, [])
+            while pending and _date_sort_key(pending[0].date) < _date_sort_key(item.date):
+                merged.append(pending.pop(0))
+            merged.append(item)
+        for pending in pending_by_section.values():
+            merged.extend(pending)
+    return merged
 
 
 def _apply_grouped_ui(page: str, categories) -> str:
@@ -640,8 +723,8 @@ function relatedLinksHtml(category) {
 
 
 def render(items, categories) -> str:
-    display_items = list(items)
-    display_items.extend(_collect_reference_items(items, categories))
+    references = _collect_reference_items(items, categories)
+    display_items = _merge_reference_items(items, references, categories)
     page = _render_v4(display_items, categories)
     style_marker = '</style>'
     if style_marker not in page:
@@ -651,6 +734,10 @@ def render(items, categories) -> str:
     if SYNC_TAG_STATE_OLD not in page:
         raise RuntimeError('tag state synchronization marker not found in build_site_v4 output')
     page = page.replace(SYNC_TAG_STATE_OLD, SYNC_TAG_STATE_NEW, 1)
+
+    if REFERENCE_CARD_OLD not in page:
+        raise RuntimeError('reference card renderer marker not found in build_site_v4 output')
+    page = page.replace(REFERENCE_CARD_OLD, REFERENCE_CARD_NEW, 1)
 
     if CARD_TAG_OLD not in page:
         raise RuntimeError('card tag renderer marker not found in build_site_v4 output')
