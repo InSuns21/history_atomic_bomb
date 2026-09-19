@@ -46,7 +46,7 @@
     "16:9"
   ],
   "auto_prompts": {
-    "enabled": true,
+    "enabled": false,
     "achievement_dir": "achievements",
     "body_max_chars": 900,
     "positive_prefix": "historically grounded editorial scene derived from the repository's current achievement text",
@@ -69,7 +69,9 @@
       "はだしのゲンは図書館にはありません",
       "核ガンジーはゲームだけにして",
       "ガンジー、悲しみの螺旋",
-      "🔒 先生は猿田博士でしたか？"
-    ]
+      "🔒 先生は猿田博士でしたか？",
+      "右手は原爆、左手は平和"
+    ],
+    "manual_only": true
   }
 }
