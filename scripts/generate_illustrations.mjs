@@ -160,10 +160,10 @@ function parseAchievementMarkdown(markdown, sourceFile) {
   const entries = [];
 
   for (const line of markdown.split("\n")) {
-    const match = line.match(/^\|([^|]*)\|\s*\*\*(.*?)\*\*\s*\|([^|]*)\|(.*)\|\s*$/);
+    const match = line.match(/^\|([^|]*)\|\s*(🔒\s*)?\*\*(.*?)\*\*\s*\|([^|]*)\|(.*)\|\s*$/);
     if (!match) continue;
-    const [, dateRaw, titleRaw, tagsRaw, bodyRaw] = match;
-    const title = plainText(titleRaw);
+    const [, dateRaw, lockRaw, titleRaw, tagsRaw, bodyRaw] = match;
+    const title = `${lockRaw ? "🔒 " : ""}${plainText(titleRaw)}`;
     if (!title) continue;
     entries.push({
       date: plainText(dateRaw),
@@ -278,6 +278,7 @@ function mergePromptCoverage(manualEntries, achievementEntries, config) {
   const staleManual = manualEntries.filter((entry) => !achievementByTitle.has(entry.title));
   const dateMismatches = [];
   const excluded = [];
+  const missingManual = [];
   const entries = [];
 
   for (const achievement of achievementEntries) {
@@ -302,6 +303,11 @@ function mergePromptCoverage(manualEntries, achievementEntries, config) {
       continue;
     }
 
+    if (config.auto_prompts?.manual_only === true) {
+      missingManual.push(achievement);
+      continue;
+    }
+
     if (config.auto_prompts?.enabled !== false) {
       entries.push(makeAutoPromptEntry(achievement, config));
     }
@@ -313,7 +319,8 @@ function mergePromptCoverage(manualEntries, achievementEntries, config) {
     dateMismatches,
     duplicateManual,
     duplicateAchievements,
-    excluded
+    excluded,
+    missingManual
   };
 }
 
@@ -321,8 +328,11 @@ function printCoverage(coverage) {
   const manual = coverage.entries.filter((entry) => entry.origin === "manual").length;
   const auto = coverage.entries.filter((entry) => entry.origin === "auto").length;
   console.log(
-    `Illustration coverage: manual=${manual}, auto=${auto}, excluded=${coverage.excluded.length}, stale_manual=${coverage.staleManual.length}`
+    `Illustration coverage: manual=${manual}, auto=${auto}, excluded=${coverage.excluded.length}, missing_manual=${coverage.missingManual.length}, stale_manual=${coverage.staleManual.length}`
   );
+  for (const item of coverage.missingManual) {
+    console.error(`[MISSING] ${item.date} — ${item.title} (${path.basename(item.sourceFile)})`);
+  }
   for (const entry of coverage.staleManual) {
     console.error(`[STALE] prompt title not found in achievements: ${entry.heading}`);
   }
@@ -601,7 +611,8 @@ async function main() {
       coverage.staleManual.length > 0 ||
       coverage.dateMismatches.length > 0 ||
       coverage.duplicateManual.length > 0 ||
-      coverage.duplicateAchievements.length > 0
+      coverage.duplicateAchievements.length > 0 ||
+      coverage.missingManual.length > 0
     ) {
       process.exitCode = 1;
     }
