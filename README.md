@@ -64,6 +64,7 @@ CI では本文長、タグ、重複などをカテゴリー横断で検証し�
 - [`illustrations/config.json`](./illustrations/config.json) — モデル、共通画風、negative terms、出力設定
 - `scripts/generate_illustrations.mjs` — 生成・スキップ・JPEG正規化・メタデータ保存
 - `assets/illustrations/` — 採用画像と `.meta.json` の保存先
+
 ## 編集方針
 
 被爆や核事故などの惨事は、単なる「達成感」の演出に寄せず、必要に応じて「記録されました」という扱いを想定します。一方で、一覧を惨事だけで埋めず、科学史、救護、復興、文化、軍縮、外交、技術史、希望、未解決問題も同じ時間軸上で扱います。
