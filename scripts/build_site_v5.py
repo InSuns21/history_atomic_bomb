@@ -48,6 +48,7 @@ CATEGORY_GROUPS = (
         "PEOPLE & CULTURE",
         "個人の記憶と文化史",
         (
+            "achievements/02_showa_emperor.md",
             "achievements/02_harimoto_isao.md",
             "achievements/02_tezuka_osamu.md",
             "achievements/02_miyazaki_hayao.md",
