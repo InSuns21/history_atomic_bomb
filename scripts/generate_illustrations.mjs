@@ -14,18 +14,31 @@ function parseArgs(argv) {
     concurrency: 1,
     config: "illustrations/config.json"
   };
-  for (const arg of argv) {
+
+  function addOnly(raw) {
+    const values = String(raw)
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (values.length === 0) {
+      throw new Error("--only requires at least one non-empty search term");
+    }
+    if (!options.only) options.only = new Set();
+    for (const value of values) options.only.add(value);
+  }
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
     if (arg === "--force") options.force = true;
     else if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--list") options.list = true;
-    else if (arg.startsWith("--only=")) {
-      options.only = new Set(
-        arg
-          .slice("--only=".length)
-          .split(",")
-          .map((v) => v.trim())
-          .filter(Boolean)
-      );
+    else if (arg === "--only") {
+      if (i + 1 >= argv.length) {
+        throw new Error("--only requires a value");
+      }
+      addOnly(argv[++i]);
+    } else if (arg.startsWith("--only=")) {
+      addOnly(arg.slice("--only=".length));
     } else if (arg.startsWith("--concurrency=")) {
       const value = Number(arg.slice("--concurrency=".length));
       if (!Number.isInteger(value) || value < 1) {
@@ -35,8 +48,31 @@ function parseArgs(argv) {
     } else if (arg.startsWith("--config=")) {
       options.config = arg.slice("--config=".length);
     } else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/generate_illustrations.mjs [options]\n\nOptions:\n  --dry-run            Show what would be generated or converted without changing files\n  --force              Regenerate even when an image already exists\n  --list               List parsed illustration entries and exit\n  --only=a,b           Generate only entries whose heading/title contains a or b\n  --concurrency=N      Number of concurrent generations (default: 1)\n  --config=PATH        Config JSON path (default: illustrations/config.json)\n  -h, --help           Show this help\n\nBehavior:\n  - Newly generated images are normalized and saved as JPEG (.jpg)\n  - Existing .png/.webp/.jpeg images are converted locally to .jpg without an API call\n  - Existing .jpg images are skipped unless --force is used\n  - forced_negative_terms in config are always appended to the negative prompt\n\nEnvironment:\n  MODELSLAB_API_KEY    Required only when an API generation is needed\n  MODELSLAB_MODEL_ID   Optional override for config model_id\n`);
+      console.log(`Usage: node scripts/generate_illustrations.mjs [options]
+
+Options:
+  --dry-run            Show what would be generated or converted without changing files
+  --force              Regenerate even when an image already exists
+  --list               List parsed illustration entries and exit
+  --only a,b           Generate only entries whose heading/title contains a or b
+  --only=a,b           Same as above; --only may be repeated
+  --concurrency=N      Number of concurrent generations (default: 1)
+  --config=PATH        Config JSON path (default: illustrations/config.json)
+  -h, --help           Show this help
+
+Behavior:
+  - Newly generated images are normalized and saved as JPEG (.jpg)
+  - Existing .png/.webp/.jpeg images are converted locally to .jpg without an API call
+  - Existing .jpg images are skipped unless --force is used
+  - forced_negative_terms in config are always appended to the negative prompt
+
+Environment:
+  MODELSLAB_API_KEY    Required only when an API generation is needed
+  MODELSLAB_MODEL_ID   Optional override for config model_id
+`);
       process.exit(0);
+    } else {
+      throw new Error(`Unknown option: ${arg}`);
     }
   }
   return options;
