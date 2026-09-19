@@ -54,51 +54,110 @@ CI では本文長、タグ、重複などをカテゴリー横断で検証し�
 
 ## 実績イラストの生成
 
-イラスト候補と個別プロンプトは [`ILLUSTRATION_PROMPTS.md`](./ILLUSTRATION_PROMPTS.md) で管理します。共通の画風・ModelsLab設定は [`illustrations/config.json`](./illustrations/config.json) に置き、`scripts/generate_illustrations.mjs` が Markdown 内の各 `###` 実績見出しと `Positive prompt` / `Negative prompt` を読み取って生成します。
+実績カードの一部には、史実理解を補助する **historical editorial illustration** を付けます。画像は史料写真の代替・復元写真・公式図版の再現ではなく、**公開された史実情報をもとに構図を独自化した編集イラスト**として扱います。画像だけで新しい史実を断定せず、本文側の留保・要検証表記を優先します。
 
-画像変換には `sharp` を使うため、最初に依存を入れます。
+関連ファイル:
+
+- [`ILLUSTRATION_PROMPTS.md`](./ILLUSTRATION_PROMPTS.md) — 実績ごとの `狙い`、Positive / Negative prompt の正本。
+- [`illustrations/config.json`](./illustrations/config.json) — モデル、出力サイズ、共通画風、強制 negative terms、JPEG品質など。
+- `scripts/generate_illustrations.mjs` — Markdown の prompt を読み取り、生成・スキップ・JPEG正規化・メタデータ保存を行う。
+- `assets/illustrations/` — 採用画像と `.meta.json` の保存先。
+
+### セットアップ
+
+画像変換に `sharp` を使うため、最初に依存を入れます。
 
 ```bash
 npm install
 ```
 
-ModelsLab API キーを環境変数へ設定して実行します。
+ModelsLab API を使って新規生成する場合は API キーを設定します。
 
 ```bash
 export MODELSLAB_API_KEY="..."
-npm run gen:illustrations
 ```
 
-生成画像は `assets/illustrations/` に **JPEG (`.jpg`)** として保存します。ModelsLab から PNG / WebP 等で返された場合も、ダウンロード後に JPEG へ正規化します。JPEG品質は `illustrations/config.json` の `jpeg_quality` で調整できます。
-
-既に同じ実績の `.jpg` が存在する場合は API を呼ばずにスキップします。`.jpeg` / `.png` / `.webp` だけが存在する場合も API は呼ばず、ローカルで `.jpg` へ変換します。既定では変換成功後に元の非JPG画像を削除し、リポジトリ上の画像形式をJPGへ揃えます。実績・プロンプトを追加した後に同じコマンドを再実行すれば、未生成分だけAPI生成されます。
-
-画像と `.meta.json` はリポジトリへコミットする想定です。
-
-主なオプション:
-
-```bash
-# APIを呼ばず、生成・変換対象だけ確認
-npm run gen:illustrations:dry
-
-# パースされた実績を一覧表示
-node scripts/generate_illustrations.mjs --list
-
-# タイトル・見出しを部分一致で絞る
-node scripts/generate_illustrations.mjs --only="明日も遊びたかった,路面電車"
-
-# 既存画像があっても再生成
-npm run gen:illustrations:force
-
-# 並列生成
-node scripts/generate_illustrations.mjs --concurrency=2
-```
-
-モデルは既定で `flux`。一時的に変更する場合は `MODELSLAB_MODEL_ID`、恒久的に変更する場合は `illustrations/config.json` の `model_id` を変更します。
+モデルは既定で `illustrations/config.json` の `model_id`（現在は `flux`）を使います。一時的に変更する場合は環境変数で上書きできます。
 
 ```bash
 MODELSLAB_MODEL_ID="flux-dev" npm run gen:illustrations
 ```
+
+### 基本コマンド
+
+```bash
+# 台帳から認識された実績を一覧表示
+node scripts/generate_illustrations.mjs --list
+
+# APIを呼ばず、生成・変換対象だけ確認
+npm run gen:illustrations:dry
+
+# 未生成分を生成
+npm run gen:illustrations
+
+# 1枚だけ dry-run
+npm run gen:illustrations:dry -- --only "原子雲の上へ"
+
+# 1枚だけ生成
+npm run gen:illustrations -- --only "原子雲の上へ"
+
+# 複数枚を部分一致で指定
+npm run gen:illustrations -- --only "原子雲の上へ,妻はロザリオを残した"
+
+# 既存画像があっても対象だけ再生成
+npm run gen:illustrations:force -- --only "原子雲の上へ"
+
+# 並列生成
+node scripts/generate_illustrations.mjs --concurrency=2
+
+# --only=... 形式も利用可能
+node scripts/generate_illustrations.mjs --only="原子雲の上へ"
+```
+
+`--only` は見出し・タイトル・生成ファイル名への部分一致です。まず `--list` または `--dry-run` で対象を確認してから生成してください。
+
+### 生成スクリプトの挙動
+
+`generate_illustrations.mjs` は `ILLUSTRATION_PROMPTS.md` の `###` 見出しと `Positive prompt` / `Negative prompt` を読み取ります。
+
+- 新規画像は `assets/illustrations/` に **JPEG (`.jpg`)** として保存。
+- 同じ実績の `.jpg` があれば、既定で API を呼ばずスキップ。
+- `.png` / `.webp` / `.jpeg` だけが存在する場合は、API を呼ばずローカルで `.jpg` へ変換。
+- `--force` 指定時だけ既存画像を再生成。
+- 生成に使った最終 prompt、model、出力ファイル等は `.meta.json` に保存。
+- 共通画風と権利衝突防止用の共通 NG 語は `illustrations/config.json` から自動付与。
+- 個別 prompt に残る旧画風の共通句は、設定された範囲で除去してから共通スタイルを結合。
+
+そのため、実績や prompt を追加した後に通常の生成コマンドを再実行すれば、**未生成分だけを追加生成**できます。
+
+### 新しい実績を画像化する流れ
+
+1. 先に `achievements/*.md` の実績本文を確定する。
+2. `ILLUSTRATION_PROMPTS.md` へ同じ実績名で `### 年月日 — 実績名` を追加。
+3. `狙い` で、その画像がシリーズ中で何を担当するかを決める。
+4. Positive prompt に **主役・構図・年代/場所・感情トーン・歴史的具体物**を書く。
+5. Negative prompt に **誤生成・現代物・直接再現したくない資料・過剰演出**を書く。
+6. `--dry-run --only ...` で対象とファイル名を確認。
+7. まず1枚生成し、画風と構図をレビュー。
+8. 必要なカードだけ prompt 修正 + `--force`。
+9. 系列で問題なければ残りへ展開する。
+
+### 画像プロンプトの編集方針
+
+個別 prompt は画風を毎回長く指定する場所ではなく、**「何を、どこから、どう見せるか」**を記述する場所です。画風は `illustrations/config.json` を正本にします。
+
+特に同一人物・同一時代のカードでは、全身人物の正面構図を連続させず、静物、救護、研究机、建築、縦構図、群像、抽象対比などへ役割を分散します。永井隆の個人史では、ロザリオを静物、救護を斜め群像、原爆症研究を机上、原子雲上の妻を縦方向、如己堂を建築、原子への希望を抽象対比として描き分けています。
+
+### 権利・史実・被害表現
+
+- 博物館・資料館・報道機関・出版社等が管理する写真を、許諾確認なしに入力参照画像として使わない。
+- 著名な史料・遺物を描く場合も、特定写真のアングル・照明・背景をそのままイラスト化せず、構図を独自化する。
+- 漫画、アニメ、映画、書影、宗教画、ポスター、ロゴ、象徴的な既存構図を直接再現しない。
+- 被爆・戦争・事故は、遺体や重傷のショック描写より、物・場所・距離・姿勢で重さを伝える。
+- 宗教的・政治的解釈は、画像の演出によって確定的な史実へ変換しない。
+- 核兵器・原子力の画像が、意図せず兵器礼賛・技術礼賛のポスターになっていないか確認する。
+
+詳細なプロンプト作法、構図重複回避、採用前レビュー項目は [`ILLUSTRATION_PROMPTS.md`](./ILLUSTRATION_PROMPTS.md) を参照してください。
 
 ## 編集方針
 
