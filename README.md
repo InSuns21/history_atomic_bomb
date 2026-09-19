@@ -54,115 +54,16 @@ CI では本文長、タグ、重複などをカテゴリー横断で検証し�
 
 ## 実績イラストの生成
 
-権利・史実上のリスクが低い実績カードには、原則として史実理解を補助する **historical editorial illustration** を付けられる生成パイプラインを用意しています。画像は史料写真の代替・復元写真・公式図版の再現ではなく、**公開された史実情報をもとに構図を独自化した編集イラスト**として扱います。画像だけで新しい史実を断定せず、本文側の留保・要検証表記を優先します。
+権利・史実上のリスクが低い実績カードには、史実理解を補助する **historical editorial illustration** を付ける生成パイプラインを用意しています。史料写真の直接再現ではなく、公開された史実情報をもとにした独自構図の編集イラストとして扱います。
+
+画像生成の**運用方針・セットアップ・コマンド・自動補完・権利上の注意・構図重複回避・採用前レビュー**は、すべて [`ILLUSTRATION_PROMPTS.md`](./ILLUSTRATION_PROMPTS.md) を参照してください。
 
 関連ファイル:
 
-- [`ILLUSTRATION_PROMPTS.md`](./ILLUSTRATION_PROMPTS.md) — 実績ごとの `狙い`、Positive / Negative prompt の正本。
-- [`illustrations/config.json`](./illustrations/config.json) — モデル、出力サイズ、共通画風、強制 negative terms、JPEG品質など。
-- `scripts/generate_illustrations.mjs` — Markdown の prompt を読み取り、生成・スキップ・JPEG正規化・メタデータ保存を行う。
-- `assets/illustrations/` — 採用画像と `.meta.json` の保存先。
-
-### セットアップ
-
-画像変換に `sharp` を使うため、最初に依存を入れます。
-
-```bash
-npm install
-```
-
-ModelsLab API を使って新規生成する場合は API キーを設定します。
-
-```bash
-export MODELSLAB_API_KEY="..."
-```
-
-モデルは既定で `illustrations/config.json` の `model_id`（現在は `flux`）を使います。一時的に変更する場合は環境変数で上書きできます。
-
-```bash
-MODELSLAB_MODEL_ID="flux-dev" npm run gen:illustrations
-```
-
-### 基本コマンド
-
-```bash
-# 現行実績と手書きpromptの整合性を検査
-npm run gen:illustrations:check
-
-# 手書き＋自動補完を含む生成対象を一覧表示
-node scripts/generate_illustrations.mjs --list
-
-# APIを呼ばず、生成・変換対象だけ確認
-npm run gen:illustrations:dry
-
-# 未生成分を生成
-npm run gen:illustrations
-
-# 1枚だけ dry-run
-npm run gen:illustrations:dry -- --only "原子雲の上へ"
-
-# 1枚だけ生成
-npm run gen:illustrations -- --only "原子雲の上へ"
-
-# 複数枚を部分一致で指定
-npm run gen:illustrations -- --only "原子雲の上へ,妻はロザリオを残した"
-
-# 既存画像があっても対象だけ再生成
-npm run gen:illustrations:force -- --only "原子雲の上へ"
-
-# 並列生成
-node scripts/generate_illustrations.mjs --concurrency=2
-
-# --only=... 形式も利用可能
-node scripts/generate_illustrations.mjs --only="原子雲の上へ"
-```
-
-`--only` は見出し・タイトル・生成ファイル名への部分一致です。まず `--list` または `--dry-run` で対象を確認してから生成してください。
-
-### 生成スクリプトの挙動
-
-`generate_illustrations.mjs` は `ILLUSTRATION_PROMPTS.md` の手書き prompt と `achievements/*.md` の現行実績を突き合わせます。手書き prompt があればそれを優先し、未登録で権利リスクの低い実績は年月・タイトル・タグ・本文から安全寄りの scene prompt を自動補完します。
-
-- 新規画像は `assets/illustrations/` に **JPEG (`.jpg`)** として保存。
-- 同じ実績の `.jpg` があれば、既定で API を呼ばずスキップ。
-- `.png` / `.webp` / `.jpeg` だけが存在する場合は、API を呼ばずローカルで `.jpg` へ変換。
-- `--force` 指定時だけ既存画像を再生成。
-- 生成に使った最終 prompt、model、出力ファイル等は `.meta.json` に保存。
-- 共通画風と権利衝突防止用の共通 NG 語は `illustrations/config.json` から自動付与。
-- 宮崎駿・手塚治虫作品など、既存作品のビジュアルへ近づきやすい題材は `auto_prompts` の除外設定で自動生成を止める。安全な独自構図の手書き prompt を用意した場合は手書き側を優先できる。
-- 個別 prompt に残る旧画風の共通句は、設定された範囲で除去してから共通スタイルを結合。
-- `--check` は、タイトル変更で古くなった手書き prompt、年月ズレ、重複を検出する。
-
-そのため、実績や prompt を追加した後に通常の生成コマンドを再実行すれば、**未生成分だけを追加生成**できます。
-
-### 新しい実績を画像化する流れ
-
-1. 先に `achievements/*.md` の実績本文・年月・タイトルを確定する。
-2. `npm run gen:illustrations:check` で、既存の手書き prompt が現行タイトルと一致しているか確認する。
-3. 権利リスクが低い通常カードは、そのまま自動補完 prompt の生成対象になる。
-4. 象徴物・被爆資料・宗教物・複雑な構図など個別調整したいカードだけ、`ILLUSTRATION_PROMPTS.md` に同じ実績名で手書き prompt を追加する。
-5. `--dry-run --only ...` で対象とファイル名を確認する。
-6. まず1枚生成し、画風・構図・時代考証・権利上の独自性をレビューする。
-7. 必要なカードだけ prompt 修正 + `--force`。
-8. 系列で問題なければ未生成分へ展開する。
-
-### 画像プロンプトの編集方針
-
-個別 prompt は画風を毎回長く指定する場所ではなく、**「何を、どこから、どう見せるか」**を記述する場所です。画風は `illustrations/config.json` を正本にします。手書き prompt がない場合は実績本文から自動補完されるため、実績を追加するたびに prompt 台帳へ同じ内容を転記する必要はありません。
-
-特に同一人物・同一時代のカードでは、全身人物の正面構図を連続させず、静物、救護、研究机、建築、縦構図、群像、抽象対比などへ役割を分散します。永井隆の個人史では、ロザリオを静物、救護を斜め群像、原爆症研究を机上、原子雲上の妻を縦方向、如己堂を建築、原子への希望を抽象対比として描き分けています。
-
-### 権利・史実・被害表現
-
-- 博物館・資料館・報道機関・出版社等が管理する写真を、許諾確認なしに入力参照画像として使わない。
-- 著名な史料・遺物を描く場合も、特定写真のアングル・照明・背景をそのままイラスト化せず、構図を独自化する。
-- 漫画、アニメ、映画、書影、宗教画、ポスター、ロゴ、象徴的な既存構図を直接再現しない。
-- 被爆・戦争・事故は、遺体や重傷のショック描写より、物・場所・距離・姿勢で重さを伝える。
-- 宗教的・政治的解釈は、画像の演出によって確定的な史実へ変換しない。
-- 核兵器・原子力の画像が、意図せず兵器礼賛・技術礼賛のポスターになっていないか確認する。
-
-詳細なプロンプト作法、構図重複回避、採用前レビュー項目は [`ILLUSTRATION_PROMPTS.md`](./ILLUSTRATION_PROMPTS.md) を参照してください。
-
+- [`ILLUSTRATION_PROMPTS.md`](./ILLUSTRATION_PROMPTS.md) — イラスト生成運用と個別 prompt の正本
+- [`illustrations/config.json`](./illustrations/config.json) — モデル、共通画風、negative terms、出力設定
+- `scripts/generate_illustrations.mjs` — 生成・スキップ・JPEG正規化・メタデータ保存
+- `assets/illustrations/` — 採用画像と `.meta.json` の保存先
 ## 編集方針
 
 被爆や核事故などの惨事は、単なる「達成感」の演出に寄せず、必要に応じて「記録されました」という扱いを想定します。一方で、一覧を惨事だけで埋めず、科学史、救護、復興、文化、軍縮、外交、技術史、希望、未解決問題も同じ時間軸上で扱います。
