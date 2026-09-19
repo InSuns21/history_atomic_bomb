@@ -24,6 +24,10 @@ def render(items: list[legacy.Achievement], categories: list[base.Category]) -> 
                 "category": getattr(a, "category", ""),
                 "category_id": getattr(a, "category_id", ""),
                 "source_file": getattr(a, "source_file", ""),
+                "is_reference": bool(getattr(a, "is_reference", False)),
+                "canonical_category": getattr(a, "canonical_category", ""),
+                "canonical_category_id": getattr(a, "canonical_category_id", ""),
+                "canonical_source_file": getattr(a, "canonical_source_file", ""),
             }
         )
         payload.append(row)
