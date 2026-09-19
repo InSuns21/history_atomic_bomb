@@ -250,6 +250,34 @@ ruins of Urakami Cathedral in Nagasaki after the atomic bombing, broken red-bric
 crucified living person, divine apparition, angels, miraculous beam of light, gore, corpses, blood, triumphal religious propaganda, intact modern cathedral, readable text
 ```
 
+### 1945/08/09–11 — 妻はロザリオを残した
+
+**狙い:** 妻の死を人物の再現ではなく、焼け跡から拾われたロザリオという一つの物証へ凝縮する。原子雲・教会・聖母像とは別の、手元の静物構図にする。
+
+**Positive prompt**
+```text
+close intimate view in the burned ruins of Urakami after the Nagasaki atomic bombing, a wounded Japanese physician's hand carefully lifting a heat-damaged Catholic rosary from gray ash and broken household debris, the rosary beads and small cross as the clear focal point, only fragments of a modest 1940s home in soft background, quiet grief conveyed through objects rather than faces, low eye-level still-life composition, restrained ash gray and dark brown palette, original composition based on the documented event and not on any single museum or archival photograph, no readable text, 16:9
+```
+
+**Negative prompt**
+```text
+exact museum artifact photo, exact recreation of a known rosary photograph, corpse, bones, body parts, graphic burns, blood, religious miracle scene, glowing cross, cathedral altar composition, Madonna statue, mushroom cloud dominating the frame, modern household objects, readable text
+```
+
+### 1945/08/09–10/08 — 自分も被爆者ですが、患者を診ます
+
+**狙い:** 永井自身の負傷と救護を同時に見せる。研究机ではなく、臨時救護所を斜めに使った複数人物の現場構図にする。
+
+**Positive prompt**
+```text
+improvised Nagasaki medical relief station in August 1945, a Japanese physician with a bandaged right side of the head leaning forward to examine a wounded civilian while clearly injured himself, another patient under a blanket and one helper nearby, simple 1940s medical supplies, notebooks and water basin on a rough table, diagonal active composition showing emergency care in a damaged temporary setting, exhausted concentration rather than heroism, respectful distance from injuries, muted khaki gray and brown palette, original historical editorial composition, no readable text, 16:9
+```
+
+**Negative prompt**
+```text
+modern hospital, pristine operating room, graphic wounds, gore, blood, exposed organs, heroic propaganda pose, smiling doctor, modern scrubs, modern monitors, exact portrait recreation, readable medical chart, mushroom cloud as background spectacle
+```
+
 ---
 
 ## 復興・被爆後・記憶継承
@@ -294,6 +322,94 @@ Hiroshima Peace Memorial Park at dusk, the Flame of Peace burning steadily in th
 **Negative prompt**
 ```text
 fireworks, festival crowd, giant fantasy flame, city on fire, readable monument text, modern advertising
+```
+
+---
+
+## 永井隆 ― 個人史
+
+### 1945/08– — 原子爆弾症！――研究しよう
+
+**狙い:** 救護カードと被らないよう、患者を診る場面ではなく「未知の病態を記録して科学へ戻る」机上の研究構図にする。
+
+**Positive prompt**
+```text
+late summer 1945 Nagasaki, a wounded Japanese physician-scientist seated at a rough temporary desk in a damaged medical shelter, handwritten case notes, simple blood-count charts without legible words, pencil, thermometer and basic period medical instruments spread across the table, his bandaged head and tired posture visible while he studies observations with intense concentration, patients only faintly suggested in the distant background, composition centered on recording and scientific inquiry amid catastrophe, no heroic pose, muted charcoal brown and gray-blue palette, original historical editorial illustration, no readable text, 16:9
+```
+
+**Negative prompt**
+```text
+modern laboratory, modern computer, digital monitor, detailed readable equations, readable medical records, treatment scene as the main subject, graphic wounds, gore, exact portrait recreation, glowing radiation, science-fiction equipment, triumphant scientist
+```
+
+### 1945以後（制作年要検証） — 原子雲の上へ
+
+**狙い:** 永井が描いた「原爆死した妻を原子雲の上で昇天させる」発想を扱うが、既存作品の構図は再現しない。地上→原子雲→上空へ抜ける縦方向の象徴構図で、被爆マリアや浦上天主堂カードと明確に差別化する。
+
+**Positive prompt**
+```text
+original symbolic memorial illustration inspired by the documented idea that Takashi Nagai depicted his deceased wife ascending above the Nagasaki atomic cloud, wide 16:9 frame organized with a strong vertical path through the center: tiny ruined Urakami rooftops far below, a pale towering atomic cloud rising through the middle distance, and a solitary modestly dressed 1940s Japanese woman represented as a small serene figure high above the cloud against an open pale sky, her upward placement conveyed as a visual metaphor rather than a literal supernatural event, sorrowful and restrained, no altar, no cathedral interior, no Madonna statue, no imitation of any known drawing by Nagai, original composition, no readable text
+```
+
+**Negative prompt**
+```text
+exact recreation of Takashi Nagai's drawing, copy of a known religious artwork, Madonna and Child icon, Virgin Mary statue, church altar composition, crucifixion scene, angels, halo, fantasy magic effects, dramatic heavenly rays, triumphal resurrection imagery, giant close-up face, gore, corpses, readable text
+```
+
+### 1948/03 — たった二畳の如己堂
+
+**狙い:** 人物ではなく「二畳一間の小ささ」そのものを主役にする。外観の三-quarter view で、原爆カード群にない静かな空間構図を作る。
+
+**Positive prompt**
+```text
+Nyokodo in Urakami Nagasaki around 1948, an extremely small simple wooden two-tatami hut shown from a slightly elevated three-quarter exterior view, modest earthen yard, a few recovering plants and simple household objects, one small seated figure visible near the doorway only for scale, strong emphasis on how tiny and humble the dwelling is, quiet postwar reconstruction atmosphere, soft overcast daylight, restrained wood brown and gray-green palette, original composition based on the known building rather than copying a tourist or museum photograph, no readable text, 16:9
+```
+
+**Negative prompt**
+```text
+exact tourist photograph, exact museum photograph, large traditional mansion, ornate temple, modern house, pristine landscaped garden, crowded visitors, dramatic mushroom cloud, religious apparition, readable signage, modern street furniture
+```
+
+### 1948/04 — それでも原子には希望があります
+
+**狙い:** 原爆礼賛に見えないよう、兵器や爆発ではなく「原稿を書く人物」と「小さな原子エネルギーの抽象記号」を対置する。希望と倫理的不穏さを同居させる。
+
+**Positive prompt**
+```text
+symbolic historical editorial illustration of Takashi Nagai reflecting on atomic energy after the Nagasaki bombing, a Japanese physician-writer seated beside an open manuscript and medical books in a very modest room, on one side a small abstract atom-like orbital motif rendered as a restrained geometric light shape, on the other side a dark damaged window frame and distant ruined skyline, balanced composition expressing scientific hope beside remembered destruction, thoughtful and morally uneasy rather than celebratory, no weapon, no explosion, no propaganda styling, original composition, no readable text, 16:9
+```
+
+**Negative prompt**
+```text
+nuclear bomb, missile, mushroom cloud as spectacle, cheerful atomic-age advertisement, smiling propaganda scientist, futuristic reactor, neon atom logo, magic glow, exact portrait recreation, readable manuscript, readable equations, triumphal technology poster
+```
+
+### 1950 — 子どもたちに、本を残す
+
+**狙い:** 重い永井カード群の中で、子どもと本を主役にした明るい群像構図にする。如己堂の外観カードとは被らせない。
+
+**Positive prompt**
+```text
+postwar Nagasaki around 1950, a small humble children's reading space with low wooden bookshelves and a simple book box, several Japanese children quietly reading or choosing books, a frail adult figure seated unobtrusively at the edge of the scene watching over them, warm daylight entering from one side, books and children's concentration as the main visual subject, modest community atmosphere rather than a formal library, gentle recovery after war, restrained warm brown and soft green palette, original historical editorial composition, no readable book titles, no readable text, 16:9
+```
+
+**Negative prompt**
+```text
+modern library, colorful modern children's books with readable covers, school uniforms from the wrong era, anime children, cute mascot style, luxury interior, dramatic religious imagery, mushroom cloud, exact portrait recreation, readable text
+```
+
+### 1951/05/01 — 科学に焼かれて、それでも科学を捨てなかった
+
+**狙い:** 永井隆編の総括。中央人物＋左右対比で、片側に破壊、片側に医学ノート・本・穏やかな原子記号を置き、反科学にも科学礼賛にも寄せない。
+
+**Positive prompt**
+```text
+symbolic summary portrait composition of Takashi Nagai as a physician, atomic-bomb survivor and writer, a frail Japanese doctor seated centrally in a modest postwar room, left side fading into broken brick, scorched timber and a dark ruined Nagasaki streetscape, right side containing medical notebooks, stacked books, a small reading lamp and a restrained abstract atom motif, clear left-right visual tension around the central figure, calm weary expression, knowledge continuing beside destruction, neither anti-science propaganda nor technological triumph, original composition not based on a single portrait photograph, muted charcoal brown with restrained pale highlights, no readable text, 16:9
+```
+
+**Negative prompt**
+```text
+split-screen graphic with labels, exact portrait photograph recreation, heroic scientist pose, smiling atomic-age propaganda, nuclear weapon, explosion, giant mushroom cloud, fantasy aura, saint halo, gore, hospital gore, modern electronics, readable notes, readable text
 ```
 
 ---
