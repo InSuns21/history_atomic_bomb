@@ -10,6 +10,7 @@ function parseArgs(argv) {
     force: false,
     dryRun: false,
     list: false,
+    check: false,
     only: null,
     concurrency: 1,
     config: "illustrations/config.json"
@@ -32,6 +33,7 @@ function parseArgs(argv) {
     if (arg === "--force") options.force = true;
     else if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--list") options.list = true;
+    else if (arg === "--check") options.check = true;
     else if (arg === "--only") {
       if (i + 1 >= argv.length) {
         throw new Error("--only requires a value");
@@ -54,6 +56,7 @@ Options:
   --dry-run            Show what would be generated or converted without changing files
   --force              Regenerate even when an image already exists
   --list               List parsed illustration entries and exit
+  --check              Audit manual prompt titles/dates against current achievements
   --only a,b           Generate only entries whose heading/title contains a or b
   --only=a,b           Same as above; --only may be repeated
   --concurrency=N      Number of concurrent generations (default: 1)
@@ -132,6 +135,209 @@ function parsePromptMarkdown(markdown) {
   }
 
   return entries;
+}
+
+
+function plainText(value) {
+  return String(value || "")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[*_~`>#]/g, " ")
+    .replace(/\\\|/g, "|")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeDate(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .replace(/[‐‑‒–—―]/g, "-")
+    .replace(/^🔒/, "")
+    .trim();
+}
+
+function parseAchievementMarkdown(markdown, sourceFile) {
+  const entries = [];
+
+  for (const line of markdown.split("\n")) {
+    const match = line.match(/^\|([^|]*)\|\s*\*\*(.*?)\*\*\s*\|([^|]*)\|(.*)\|\s*$/);
+    if (!match) continue;
+    const [, dateRaw, titleRaw, tagsRaw, bodyRaw] = match;
+    const title = plainText(titleRaw);
+    if (!title) continue;
+    entries.push({
+      date: plainText(dateRaw),
+      title,
+      tags: plainText(tagsRaw)
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+      body: plainText(bodyRaw),
+      sourceFile
+    });
+  }
+
+  const headingRe = /^###\s+(🔒\s+.+)$/gm;
+  const headings = [...markdown.matchAll(headingRe)];
+  for (let i = 0; i < headings.length; i += 1) {
+    const title = plainText(headings[i][1]);
+    const start = headings[i].index + headings[i][0].length;
+    const end = i + 1 < headings.length ? headings[i + 1].index : markdown.length;
+    const section = markdown.slice(start, end);
+    const tagsMatch = section.match(/\*\*タグ:\*\*\s*([^\n]+)/);
+    const conditionMatch = section.match(/\*\*解除条件:\*\*\s*([^\n]+)/);
+    const tags = tagsMatch
+      ? plainText(tagsMatch[1]).split(",").map((value) => value.trim()).filter(Boolean)
+      : [];
+    const body = plainText(
+      [
+        conditionMatch ? `解除条件: ${conditionMatch[1]}` : "",
+        section
+          .replace(/\*\*タグ:\*\*[^\n]*/g, "")
+          .replace(/\*\*解除条件:\*\*[^\n]*/g, "")
+      ].join(" ")
+    );
+    entries.push({ date: "未来", title, tags, body, sourceFile });
+  }
+
+  return entries;
+}
+
+async function loadAchievementEntries(directory) {
+  const names = (await fs.readdir(directory))
+    .filter((name) => name.endsWith(".md"))
+    .sort();
+  const entries = [];
+  for (const name of names) {
+    const sourceFile = path.join(directory, name);
+    const markdown = await fs.readFile(sourceFile, "utf8");
+    entries.push(...parseAchievementMarkdown(markdown, sourceFile));
+  }
+  return entries;
+}
+
+function isAutoExcluded(achievement, config) {
+  const auto = config.auto_prompts || {};
+  const sourceName = path.basename(achievement.sourceFile);
+  if ((auto.exclude_source_files || []).includes(sourceName)) return true;
+  if ((auto.exclude_titles || []).includes(achievement.title)) return true;
+  const blockedTags = new Set(auto.exclude_tags || []);
+  return achievement.tags.some((tag) => blockedTags.has(tag));
+}
+
+function makeAutoPromptEntry(achievement, config) {
+  const auto = config.auto_prompts || {};
+  const contextLimit = Number(auto.body_max_chars || 900);
+  const context = achievement.body.slice(0, contextLimit);
+  const themes = achievement.tags.length > 0 ? achievement.tags.join(", ") : "historical context";
+  const positive = [
+    auto.positive_prefix || "historically grounded editorial scene",
+    `achievement title: ${achievement.title}`,
+    `period: ${achievement.date || "undated"}`,
+    `themes: ${themes}`,
+    `factual context: ${context}`,
+    "choose a concrete scene, place, object, scientific apparatus, infrastructure, landscape, or non-identifying human activity that communicates the event without copying any known photograph",
+    "prefer symbolic material evidence and historically plausible surroundings over exact celebrity portraiture"
+  ].join(". ");
+  const negative = [
+    auto.negative_prefix || "do not imitate any existing film, manga, anime, game, book cover, poster, museum photograph, news photograph, or branded visual identity",
+    "no recognizable copyrighted character",
+    "no direct recreation of a famous published image",
+    "no readable logos or trademarks",
+    "no gratuitous gore"
+  ].join(", ");
+
+  const heading = `${achievement.date || "undated"} — ${achievement.title}`;
+  return {
+    heading,
+    date: achievement.date || "undated",
+    title: achievement.title,
+    positive,
+    negative,
+    baseName: sanitizeFilename(`${achievement.date || "undated"}_${achievement.title}`),
+    origin: "auto",
+    achievement
+  };
+}
+
+function mergePromptCoverage(manualEntries, achievementEntries, config) {
+  const manualByTitle = new Map();
+  const duplicateManual = [];
+  for (const entry of manualEntries) {
+    if (manualByTitle.has(entry.title)) duplicateManual.push(entry.title);
+    manualByTitle.set(entry.title, entry);
+  }
+
+  const achievementByTitle = new Map();
+  const duplicateAchievements = [];
+  for (const achievement of achievementEntries) {
+    if (achievementByTitle.has(achievement.title)) duplicateAchievements.push(achievement.title);
+    else achievementByTitle.set(achievement.title, achievement);
+  }
+
+  const staleManual = manualEntries.filter((entry) => !achievementByTitle.has(entry.title));
+  const dateMismatches = [];
+  const excluded = [];
+  const entries = [];
+
+  for (const achievement of achievementEntries) {
+    const manual = manualByTitle.get(achievement.title);
+    if (manual) {
+      if (
+        manual.date !== "undated" &&
+        normalizeDate(manual.date) !== normalizeDate(achievement.date)
+      ) {
+        dateMismatches.push({
+          title: achievement.title,
+          promptDate: manual.date,
+          achievementDate: achievement.date
+        });
+      }
+      entries.push({ ...manual, origin: "manual", achievement });
+      continue;
+    }
+
+    if (isAutoExcluded(achievement, config)) {
+      excluded.push(achievement);
+      continue;
+    }
+
+    if (config.auto_prompts?.enabled !== false) {
+      entries.push(makeAutoPromptEntry(achievement, config));
+    }
+  }
+
+  return {
+    entries,
+    staleManual,
+    dateMismatches,
+    duplicateManual,
+    duplicateAchievements,
+    excluded
+  };
+}
+
+function printCoverage(coverage) {
+  const manual = coverage.entries.filter((entry) => entry.origin === "manual").length;
+  const auto = coverage.entries.filter((entry) => entry.origin === "auto").length;
+  console.log(
+    `Illustration coverage: manual=${manual}, auto=${auto}, excluded=${coverage.excluded.length}, stale_manual=${coverage.staleManual.length}`
+  );
+  for (const entry of coverage.staleManual) {
+    console.error(`[STALE] prompt title not found in achievements: ${entry.heading}`);
+  }
+  for (const mismatch of coverage.dateMismatches) {
+    console.error(
+      `[DATE] ${mismatch.title}: prompt=${mismatch.promptDate}, achievement=${mismatch.achievementDate}`
+    );
+  }
+  for (const title of coverage.duplicateManual) {
+    console.error(`[DUP] duplicate manual prompt title: ${title}`);
+  }
+  for (const title of coverage.duplicateAchievements) {
+    console.error(`[DUP] duplicate achievement title: ${title}`);
+  }
 }
 
 function toPromptTerms(input) {
@@ -364,15 +570,37 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   const config = JSON.parse(await fs.readFile(options.config, "utf8"));
   const source = await fs.readFile(config.prompt_source, "utf8");
-  const allEntries = parsePromptMarkdown(source);
+  const manualEntries = parsePromptMarkdown(source);
+  const achievementDir = config.auto_prompts?.achievement_dir || "achievements";
+  const achievementEntries = await loadAchievementEntries(achievementDir);
+  const coverage = mergePromptCoverage(manualEntries, achievementEntries, config);
+  const allEntries = coverage.entries;
   const entries = allEntries.filter((entry) => matchesOnly(entry, options.only));
 
   if (allEntries.length === 0) {
-    throw new Error(`No illustration prompts found in ${config.prompt_source}`);
+    throw new Error(`No illustration entries found from ${config.prompt_source} and ${achievementDir}`);
   }
+
+  if (options.check) {
+    printCoverage(coverage);
+    for (const item of coverage.excluded) {
+      console.log(`[EXCLUDE] ${item.title} (${path.basename(item.sourceFile)})`);
+    }
+    if (
+      coverage.staleManual.length > 0 ||
+      coverage.dateMismatches.length > 0 ||
+      coverage.duplicateManual.length > 0 ||
+      coverage.duplicateAchievements.length > 0
+    ) {
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   if (options.list) {
+    printCoverage(coverage);
     for (const entry of entries) {
-      console.log(`${entry.baseName}\t${entry.heading}`);
+      console.log(`[${entry.origin.toUpperCase()}]\t${entry.baseName}\t${entry.heading}`);
     }
     return;
   }
@@ -394,7 +622,9 @@ async function main() {
   const modelId = process.env.MODELSLAB_MODEL_ID || config.model_id;
   await fs.mkdir(config.output_dir, { recursive: true });
 
-  console.log(`Parsed ${allEntries.length} illustration prompts; selected ${entries.length}.`);
+  const manualCount = allEntries.filter((entry) => entry.origin === "manual").length;
+  const autoCount = allEntries.filter((entry) => entry.origin === "auto").length;
+  console.log(`Prepared ${allEntries.length} illustration entries (manual=${manualCount}, auto=${autoCount}); selected ${entries.length}.`);
   console.log(`Model: ${modelId}; output: ${config.output_dir}; format: jpg`);
   if (Array.isArray(config.forced_negative_terms) && config.forced_negative_terms.length > 0) {
     console.log(`Forced negative terms: ${config.forced_negative_terms.join(", ")}`);
