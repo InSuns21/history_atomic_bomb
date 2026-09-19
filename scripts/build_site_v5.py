@@ -542,13 +542,20 @@ def _reference_key(date: str, title: str) -> str:
 def _date_sort_key(date: str) -> tuple[int, int, int]:
     """Best-effort start-date key used only to merge reference cards into an existing timeline."""
     match = re.search(r"(?P<year>\d{4})(?:/(?P<month>\d{1,2}))?(?:/(?P<day>\d{1,2}))?", date)
-    if not match:
-        return (9999, 13, 32)
-    return (
-        int(match.group("year")),
-        int(match.group("month") or 0),
-        int(match.group("day") or 0),
-    )
+    if match:
+        return (
+            int(match.group("year")),
+            int(match.group("month") or 0),
+            int(match.group("day") or 0),
+        )
+
+    century = re.search(r"(?P<century>\d{1,2})世紀(?P<part>前半|後半)?", date)
+    if century:
+        base = (int(century.group("century")) - 1) * 100
+        offset = {"前半": 25, "後半": 75}.get(century.group("part"), 0)
+        return (base + offset, 0, 0)
+
+    return (9999, 13, 32)
 
 
 def _collect_reference_items(items, categories):
@@ -563,19 +570,27 @@ def _collect_reference_items(items, categories):
         reference_target_section = ""
         in_reference_section = False
         for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            stripped = line.strip()
+            if stripped == "<!-- timeline-references":
+                in_reference_section = True
+                reference_target_section = current_section
+                continue
+            if stripped == "-->" and in_reference_section:
+                in_reference_section = False
+                continue
             if line.startswith("## "):
                 heading = line[3:].strip()
-                if "参照" in heading:
-                    in_reference_section = True
-                    reference_target_section = current_section
-                else:
-                    in_reference_section = False
-                    current_section = heading
+                if heading == "既存実績への参照":
+                    raise RuntimeError(
+                        f"{category.path}:{line_no}: 可視の参照章は使わず、"
+                        "<!-- timeline-references ... --> で直前の史実セクションへ参照を差し込んでください"
+                    )
+                current_section = heading
                 continue
             if not in_reference_section:
                 continue
 
-            match = re.match(r"^- \*\*(?P<label>.+?)\*\*(?:\s+—.*)?$", line.strip())
+            match = re.match(r"^- \*\*(?P<label>.+?)\*\*(?:\s+—.*)?$", stripped)
             if not match:
                 continue
 
