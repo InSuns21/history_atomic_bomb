@@ -4912,3 +4912,248 @@ humanoid killer robot, recognizable science-fiction robot franchise, glowing red
 6. **人類史上もっとも長い土曜日** — 複数要素を一枚へ整理するプロンプト追従性を確認できる。
 
 この6枚で画風を固めた後、同一モデル・同一基調で残りへ広げる。モデルを途中で頻繁に変えるより、まず同一モデルで seed / prompt / guidance を調整した方がカード群の統一感を保ちやすい。
+
+---
+
+## チェルノブイリ ― 事故処理は、まだ終わらない
+
+> 事故そのものをスペクタクル化せず、RBMKの設備、避難都市、除染、石棺、封じ込め施設など「人間が残した物と作業」から関係史を見せる。被曝者・死傷者の直接的な苦痛や遺体は描かない。
+
+### 1975 — ヒヤリハットその1
+
+**狙い:** レニングラードRBMKの先行事故を、制御室と異常を示す設備の緊張感で描く。
+
+**Positive prompt**
+```text
+mid-1970s Soviet RBMK nuclear power plant control room, analog gauges and large reactor control panels, operators seen from behind studying an abnormal reactor condition, industrial concrete interior, restrained tension, no identifiable portraits, no readable Cyrillic text, no explosion, 16:9
+```
+
+**Negative prompt**
+```text
+mushroom cloud, dramatic explosion, gore, injured workers, modern digital screens, readable control labels, Chernobyl 1986 imagery, exact recreation of an archival control-room photograph
+```
+
+### 1982 — ヒヤリハットその2
+
+**狙い:** チェルノブイリ1号機の燃料損傷事故を、原子炉建屋内部の点検・隔離作業として見せる。
+
+**Positive prompt**
+```text
+early-1980s Soviet RBMK reactor service hall, massive pressure-tube reactor infrastructure and overhead industrial equipment, technicians in period protective work clothing inspecting a cordoned maintenance area after a fuel-channel failure, emphasis on machinery and containment work rather than injury, no identifiable faces, 16:9
+```
+
+**Negative prompt**
+```text
+open reactor core, graphic radiation injury, fireball, mushroom cloud, modern hazmat suits, readable signs, destroyed Unit 4, exact archival photograph recreation
+```
+
+### 1983 — 停止すると、出力が上がります
+
+**狙い:** 制御棒挿入の逆説を、RBMKの上部構造と制御機構を抽象化した工学的情景で示す。
+
+**Positive prompt**
+```text
+1983 Soviet RBMK engineering test scene, upper reactor hall with control-rod drive mechanisms and technicians observing instruments, one descending control mechanism emphasized by composition while nearby analog indicators suggest an unexpected transient increase, factual engineering atmosphere, not a technical blueprint, no readable labels, 16:9
+```
+
+**Negative prompt**
+```text
+instructional reactor blueprint, weapon diagram, glowing green radiation, explosion, modern computer interface, readable numbers, fantasy energy beams, exact photograph recreation
+```
+
+### 1986/04/26 — 止めました
+
+**狙い:** AZ-5操作を「赤いボタンの英雄譚」にせず、深夜の制御室で停止操作が行われた瞬間として描く。
+
+**Positive prompt**
+```text
+Chernobyl Unit 4 control room at night in April 1986, Soviet-era analog reactor panels stretching across the room, an operator's hand reaching toward a prominent emergency shutdown control among many switches, other operators focused on instruments, dim industrial fluorescent light, tense but restrained, no readable labels or exact portraits, 16:9
+```
+
+**Negative prompt**
+```text
+giant glowing red button, action-movie pose, explosion inside control room, gore, readable AZ-5 lettering, modern displays, exact HBO scene, exact archival photograph recreation
+```
+
+### 1986/04/26 — 記録：最初に入った人々
+
+**狙い:** 最初の消防・現場対応を、火災へ向かう消防車と建屋の遠景で記録的に描く。
+
+**Positive prompt**
+```text
+pre-dawn Chernobyl nuclear power plant exterior, April 1986, Soviet fire engines and firefighters approaching an industrial reactor building with localized rooftop fires and smoke, responders shown at a respectful distance, emphasis on emergency response and scale of the facility, no visible casualties, no identifiable portraits, 16:9
+```
+
+**Negative prompt**
+```text
+burned bodies, radiation burns, graphic injury, heroic propaganda pose, gigantic cinematic fireball, mushroom cloud, readable vehicle markings, exact famous disaster photograph
+```
+
+### 1986/04/27 — すぐ戻れますから
+
+**狙い:** プリピャチ避難を、バス列と置き去りになる日常の対比で見せる。
+
+**Positive prompt**
+```text
+Pripyat residential district on 27 April 1986, long line of Soviet buses waiting beside apartment blocks, residents carrying only small bags and guiding children toward buses, abandoned bicycles and playground visible in the foreground, spring daylight, quiet uncertainty rather than panic, no identifiable faces, 16:9
+```
+
+**Negative prompt**
+```text
+post-apocalyptic decades-later ruins, gas masks on everyone, panic stampede, corpses, modern buses, readable Soviet slogans, exact evacuation photograph recreation
+```
+
+### 1986/04/28 — 機密情報が風に乗っている
+
+**狙い:** スウェーデンでの検知を、フォルスマルク原発入口の放射線チェックと遠くの風向きで示す。
+
+**Positive prompt**
+```text
+Swedish nuclear power plant entrance in 1986, workers passing a radiation contamination monitor before entering, technicians noticing unexpected readings while the plant itself appears normal, cool Nordic morning, subtle wind-blown atmosphere linking an unseen distant source, no readable instrument text, 16:9
+```
+
+**Negative prompt**
+```text
+Chernobyl reactor in Sweden, visible radioactive cloud with symbols, panic crowd, military scene, modern smartphones, readable alarms, exact news photograph recreation
+```
+
+### 1986–1987 — 人海戦術はお手の物
+
+**狙い:** リクビダートルの大量投入を、短時間交代で瓦礫処理へ向かう作業員群として描く。
+
+**Positive prompt**
+```text
+1986 Chernobyl cleanup operation, groups of liquidators in simple period protective clothing and helmets rotating through a controlled debris-removal zone, shovels and basic tools beside improvised shielding, damaged industrial rooftop in the background, disciplined short-duration labor, respectful documentary-illustration distance, no visible injuries, 16:9
+```
+
+**Negative prompt**
+```text
+graphic radiation sickness, corpses, futuristic hazmat suits, superhero poses, glowing debris, readable badges, exact famous rooftop liquidator photograph recreation
+```
+
+### 1986/11/30 — ガンダで蓋をします
+
+**狙い:** 206日で造った旧石棺を、巨大クレーンとコンクリート・鋼材の急造工事として描く。
+
+**Positive prompt**
+```text
+late-1986 Chernobyl Shelter construction, enormous cranes placing heavy steel beams and prefabricated structures around the ruined Unit 4, fresh concrete walls and temporary construction infrastructure, workers shown tiny against the scale, cold industrial atmosphere, emphasis on rapid emergency megaproject, no casualties, 16:9
+```
+
+**Negative prompt**
+```text
+giant robot, Gundam character, sci-fi armor, clean finished New Safe Confinement arch, cinematic explosion, readable construction signs, exact archival construction photograph
+```
+
+### 1986/10–1987/12 — また発電します
+
+**狙い:** 事故処理中の4号機と、再稼働する隣接号機が同時に存在する異様な日常を俯瞰で示す。
+
+**Positive prompt**
+```text
+late-1980s Chernobyl nuclear power plant panorama, damaged Unit 4 enclosed by the newly built Shelter on one side while neighboring reactor units remain intact and operational, transmission lines carrying electricity away, maintenance vehicles and industrial activity continuing, restrained overcast light, 16:9
+```
+
+**Negative prompt**
+```text
+all reactors destroyed, abandoned city decades later, mushroom cloud, glowing radiation, modern wind turbines, readable signage, exact aerial photograph recreation
+```
+
+### 1986–2005 — 記録：甲状腺に集まるもの
+
+**狙い:** 小児甲状腺被曝を、汚染経路と長期検診の具体物から静かに示す。
+
+**Positive prompt**
+```text
+post-Chernobyl public-health scene spanning late 1980s to 1990s, pediatric thyroid screening in a modest Eastern European clinic, child seated with a parent while a clinician performs a noninvasive neck examination, milk bottle and rural dairy context subtly echoed in the background as historical exposure pathway, calm medical tone, no visible illness or surgery, 16:9
+```
+
+**Negative prompt**
+```text
+tumor close-up, surgery, radiation burns, crying spectacle, glowing thyroid symbol, modern luxury clinic, readable medical charts, exact patient photograph recreation
+```
+
+### 1992 — 人のせい→仕組みのせい
+
+**狙い:** INSAG-7の原因再評価を、個人糾弾から設計・規制・組織全体を検討する会議へ視点が広がる構図で示す。
+
+**Positive prompt**
+```text
+early-1990s international nuclear-safety review meeting, engineers and regulators around a large table examining simplified RBMK diagrams, operating records, and organizational flow charts, composition spreading attention from one operator figure toward reactor design, procedures, regulation, and institutional interfaces, neutral analytical mood, no readable report text, 16:9
+```
+
+**Negative prompt**
+```text
+courtroom blame scene, villain portrait, readable INSAG pages, detailed reactor blueprint, propaganda poster, modern laptops, exact conference photograph recreation
+```
+
+### 2000/12/15 — 今度こそ止めます
+
+**狙い:** 最後の3号機停止を、静かな制御室と止まっていく発電設備で描く。
+
+**Positive prompt**
+```text
+Chernobyl Unit 3 control room in December 2000, operators in a calm shutdown procedure before large Soviet-era control panels, subdued indicator lights and a sense of finality, exterior transmission towers visible through a secondary visual element fading into winter haze, no celebration, no identifiable portraits, no readable text, 16:9
+```
+
+**Negative prompt**
+```text
+explosion, cheering crowd, nuclear weapon imagery, futuristic control room, readable shutdown message, exact ceremony photograph recreation
+```
+
+### 2016–2019 — 石棺を石棺に入れる
+
+**狙い:** NSCが旧石棺を覆う巨大工学を、アーチのスライド移動と人間の小ささで見せる。
+
+**Positive prompt**
+```text
+Chernobyl New Safe Confinement installation, enormous silver steel arch being slid over the older Shelter structure, workers and heavy transport equipment tiny for scale, precise industrial geometry, overcast Ukrainian landscape, emphasis on engineering containment rather than disaster spectacle, 16:9
+```
+
+**Negative prompt**
+```text
+sci-fi dome, transparent force field, pristine futuristic city, explosion, readable corporate logos, dramatic radioactive glow, exact official project photograph recreation
+```
+
+### 2022/02/24–03/31 — 廃炉にも前線があります
+
+**狙い:** 戦時下の廃炉施設を、検問・停止した作業車・監視設備の緊張から描き、戦闘そのものは主役にしない。
+
+**Positive prompt**
+```text
+Chernobyl exclusion-zone nuclear site in early 2022, decommissioning infrastructure and radiation-monitoring equipment behind a military checkpoint, stopped maintenance vehicles and constrained access to an industrial facility, winter landscape, tense security atmosphere without active combat, no identifiable soldiers, no flags or insignia, 16:9
+```
+
+**Negative prompt**
+```text
+active firefight, explosions, dead soldiers, political propaganda, national flags dominating composition, nuclear blast, readable military markings, exact war-news photograph recreation
+```
+
+### 2025/02/14 — 100年持たせる予定でした
+
+**狙い:** NSCのドローン損傷を、巨大屋根の局所的な破損と消火・点検作業として中立的に描く。
+
+**Positive prompt**
+```text
+Chernobyl New Safe Confinement in February 2025, vast metal arch with a localized damaged and scorched roof section, emergency crews and inspection equipment working around the site after a drone impact, winter dawn, no visible attacker, scale emphasizing how small the damage site is against the enormous containment structure, 16:9
+```
+
+**Negative prompt**
+```text
+national flags, identifiable attacking drone model, active strike, propaganda imagery, massive reactor explosion, radioactive glow, casualties, readable news graphics, exact news photograph recreation
+```
+
+### 2026/09 — 事故処理は、まだ終わらない
+
+**狙い:** 40年後も続く修復を、NSC点検と旧石棺の遠隔解体準備が同居する長期工事として描く。
+
+**Positive prompt**
+```text
+Chernobyl site in 2026, engineers and maintenance crews inspecting repaired sections of the New Safe Confinement while remote-handling cranes and monitoring systems stand ready above the older Shelter inside, long-term decommissioning infrastructure, layered old and new structures showing decades of work, sober engineering tone, no identifiable portraits, 16:9
+```
+
+**Negative prompt**
+```text
+fully restored tourist attraction, futuristic clean reactor, nuclear explosion, radiation zombies, glowing green waste, readable project documents, exact official photograph recreation
+```
+

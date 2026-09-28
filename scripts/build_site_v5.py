@@ -38,6 +38,7 @@ CATEGORY_GROUPS = (
         (
             "achievements/00_atomic_espionage.md",
             "achievements/05_greenland_nuclear.md",
+            "achievements/04_chernobyl.md",
             "achievements/00_japan_wartime_research.md",
             "achievements/05_science_sidepaths.md",
             "achievements/05_history_of_ideas.md",
@@ -83,6 +84,8 @@ RELATED_CATEGORY_PATHS = {
         "achievements/05_greenland_nuclear.md",
     ),
     "achievements/05_greenland_nuclear.md": ("achievements/03_cold_war_deterrence.md",),
+    "achievements/04_civil_nuclear.md": ("achievements/04_chernobyl.md",),
+    "achievements/04_chernobyl.md": ("achievements/04_civil_nuclear.md",),
 }
 
 
